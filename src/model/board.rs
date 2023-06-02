@@ -127,7 +127,8 @@ impl State for Board {
     }
 
     fn update(&mut self, step: u64) {
-        self.field.lazy_update();
+        // lazy_update stops the field being searchable!
+        self.field.update();
         self.agents_field.lazy_update();
     }
 

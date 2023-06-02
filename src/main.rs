@@ -7,8 +7,6 @@ mod config;
 use {
     crate::visualization::board_vis::BoardVis, krabmaga::bevy::prelude::Color,
     krabmaga::visualization::visualization::Visualization,
-    krabmaga::engine::fields::dense_number_grid_2d::DenseNumberGrid2D,
-    krabmaga::visualization::fields::number_grid_2d::BatchRender,
 };
 
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]

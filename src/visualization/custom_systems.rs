@@ -20,7 +20,7 @@ impl RenderObjectGrid2D<Board, Patch> for DenseGrid2D<Patch> {
         let obj_real = state.field.get(obj).unwrap();
         return match obj_real.env_item {
             EnvItem::food => "evergreen_tree".to_string(),
-            EnvItem::land => "".to_string(),
+            EnvItem::land => "house".to_string(),
         }
     }
     fn fetch_loc(state: &Board, obj: &Patch) -> Option<Int2D> {

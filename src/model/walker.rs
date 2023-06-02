@@ -7,6 +7,7 @@ use rand::{
 };
 use std::hash::{Hash, Hasher};
 use super::board::Board;
+use super::env_item::EnvItem;
 use core::fmt;
 
 
@@ -38,20 +39,24 @@ impl Distribution<Direction> for Standard {
 impl Agent for Walker {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        let dir: Direction = rand::random();
-        match dir {
-            Direction::North => self.pos.y += 1,
-            Direction::East => self.pos.x += 1,
-            Direction::South => self.pos.y -= 1,
-            Direction::West => self.pos.x -= 1
+        if let Some(patch_vec) = state.field.get_objects(&self.pos) {
+            if let EnvItem::land = patch_vec[0].env_item {
+                let dir: Direction = rand::random();
+                match dir {
+                    Direction::North => self.pos.y += 1,
+                    Direction::East => self.pos.x += 1,
+                    Direction::South => self.pos.y -= 1,
+                    Direction::West => self.pos.x -= 1
+                }
+            }
         }
+        
 
         if self.pos.x > state.dim.0.into() {
             self.pos.x = state.dim.0.into()
         } else if self.pos.x < 0 {
             self.pos.x = 0            
         }
-
         if self.pos.y > state.dim.1.into() {
             self.pos.y = state.dim.1.into()
         } else if self.pos.y < 0 {
