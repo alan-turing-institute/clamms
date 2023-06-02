@@ -1,41 +1,43 @@
-use crate::model::crab::Crab;
-use crate::model::sea::Sea;
-use crate::visualization::crab_vis::CrabVis;
+use crate::model::walker::Walker;
+use crate::model::board::Board;
+use crate::visualization::walker_vis::WalkerVis;
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::ecs::system::Resource;
 use krabmaga::bevy::prelude::Commands;
 use krabmaga::engine::agent::Agent;
-use krabmaga::engine::location::Real2D;
+use krabmaga::engine::location::Int2D;
 use krabmaga::engine::schedule::Schedule;
 use krabmaga::engine::state::State;
 use krabmaga::visualization::agent_render::AgentRender;
 use krabmaga::visualization::asset_handle_factory::AssetHandleFactoryResource;
+use krabmaga::visualization::fields::number_grid_2d::BatchRender;
 use krabmaga::visualization::simulation_descriptor::SimulationDescriptor;
 use krabmaga::visualization::visualization_state::VisualizationState;
 
 #[derive(Clone, Resource)]
-pub struct SeaVis;
+pub struct BoardVis;
 
 /// Define how the simulation should be bootstrapped. Agents should be created here.
 
-impl VisualizationState<Sea> for SeaVis {
+impl VisualizationState<Board> for BoardVis {
     fn on_init(
         &self,
         _commands: &mut Commands,
         _sprite_render_factory: &mut AssetHandleFactoryResource,
-        _state: &mut Sea,
+        _state: &mut Board,
         _schedule: &mut Schedule,
         _sim: &mut SimulationDescriptor,
     ) {
+        Self::generate_patches(&_state, _sprite_render_factory, _commands, _sim);
     }
 
     fn get_agent_render(
         &self,
         agent: &Box<dyn Agent>,
-        _state: &Sea,
+        _state: &Board,
     ) -> Option<Box<dyn AgentRender>> {
-        Some(Box::new(CrabVis {
-            id: agent.downcast_ref::<Crab>().unwrap().id,
+        Some(Box::new(WalkerVis {
+            id: agent.downcast_ref::<Walker>().unwrap().id,
         }))
     }
 
@@ -44,16 +46,26 @@ impl VisualizationState<Sea> for SeaVis {
         agent_render: &Box<dyn AgentRender>,
         state: &Box<&dyn State>,
     ) -> Option<Box<dyn Agent>> {
-        let state = state.as_any().downcast_ref::<Sea>().unwrap();
-        match state.field.get(&Crab {
+        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        match state.agents_field.get(&Walker {
             id: agent_render.get_id(),
-            loc: Real2D { x: 0., y: 0. },
-            last_d: Real2D { x: 0., y: 0. },
-            dir_x: 0.,
-            dir_y: 0.,
+            pos: Int2D { x:0,y:0},
         }) {
-            Some(matching_agent) => Some(Box::new(*matching_agent)),
+            Some(matching_agent) => Some(Box::new(matching_agent)),
             None => None,
         }
+    }
+}
+
+impl BoardVis {
+    fn generate_patches(
+        state: &Board,
+        sprite_render_factory: &mut AssetHandleFactoryResource,
+        commands: &mut Commands,
+        sim: &mut SimulationDescriptor,
+    ) {
+        state
+            .field
+            .render(&mut *sprite_render_factory, commands, sim);
     }
 }

@@ -19,6 +19,7 @@ readme = "README.md"
 
 [dependencies]
 krabmaga = "0.3.*"
+rand = "0.8.5"
 
 [features]
 visualization = ["krabmaga/visualization"]

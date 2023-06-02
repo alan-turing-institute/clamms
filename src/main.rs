@@ -1,32 +1,28 @@
-// Global imports (needed for the simulation to run)
-use crate::model::sea::Sea;
-mod model;
-
-#[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 use krabmaga::*;
+mod model;
 
 // Visualization specific imports
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 use {
-    crate::visualization::sea_vis::SeaVis, krabmaga::bevy::prelude::Color,
+    crate::visualization::board_vis::BoardVis, krabmaga::bevy::prelude::Color,
     krabmaga::visualization::visualization::Visualization,
+    krabmaga::engine::fields::dense_number_grid_2d::DenseNumberGrid2D,
+    krabmaga::visualization::fields::number_grid_2d::BatchRender,
 };
 
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 mod visualization;
 
-pub static DISCRETIZATION: f32 = 10.0 / 1.5;
-pub static TOROIDAL: bool = true;
-
 // Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
+    use crate::model::board::Board;
+
     let step = 100;
+    let num_agents = 4;
+    let dim: (u16, u16) = (10, 10);
 
-    let num_agents = 20;
-    let dim: (f32, f32) = (400., 400.);
-
-    let state = Sea::new(dim, num_agents);
+    let state = Board::new(dim, num_agents);
 
     simulate!(state, step, 10);
 }
@@ -34,16 +30,19 @@ fn main() {
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
-    // Initialize the simulation and its visualization here.
 
-    let num_agents = 10;
-    let dim: (f32, f32) = (400., 400.);
+    use model::board::Board;
 
-    let state = Sea::new(dim, num_agents);
-    Visualization::default()
-        .with_window_dimensions(800., 800.)
-        .with_simulation_dimensions(dim.0, dim.1)
-        .with_background_color(Color::BLUE)
+    let num_agents = 4;
+    let dim: (u16, u16) = (40, 40);
+
+    let state = Board::new(dim, num_agents);
+    let mut app = Visualization::default()
+        .with_window_dimensions(50., 50.)
+        .with_simulation_dimensions(dim.0.into(), dim.1.into())
+        .with_background_color(Color::WHITE)
         .with_name("Template")
-        .start::<SeaVis, Sea>(SeaVis, state);
+        .setup::<BoardVis, Board>(BoardVis, state);
+    app.add_system(DenseNumberGrid2D::batch_render);
+    app.run()
 }

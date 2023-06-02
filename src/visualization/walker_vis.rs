@@ -1,20 +1,18 @@
-use crate::model::{crab::Crab, sea::Sea};
-use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::prelude::{Component, Quat, Transform, Visibility};
+use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::{
     engine::{agent::Agent, state::State},
     visualization::agent_render::{AgentRender, SpriteType},
 };
-use std::f32::consts::PI;
+use crate::model::{walker::Walker, board::Board};
 
 #[derive(Component)]
-pub struct CrabVis {
+pub struct WalkerVis {
     pub(crate) id: u32,
 }
 
-/// Define how your agent should be rendered here.
-impl AgentRender for CrabVis {
-    /// Specify the assets to use. Swap "bird" with the file name of whatever emoji you want to use.
+impl AgentRender for WalkerVis {
+        /// Specify the assets to use. Swap "bird" with the file name of whatever emoji you want to use.
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
@@ -23,29 +21,24 @@ impl AgentRender for CrabVis {
 
     /// Specify where the agent should be rendered in the window.
     fn location(&self, agent: &Box<dyn Agent>, state: &Box<&dyn State>) -> (f32, f32, f32) {
-        let state = state.as_any().downcast_ref::<Sea>().unwrap();
-        let agent = agent.downcast_ref::<Crab>().unwrap();
-        let loc = state.field.get_location(*agent);
-        match loc {
-            Some(loc) => (loc.x as f32, loc.y as f32, 0.),
-            None => (agent.loc.x as f32, agent.loc.y as f32, 0.),
-        }
+        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        let agent = agent.downcast_ref::<Walker>().unwrap();
+        (agent.pos.x as f32, agent.pos.y as f32, 0.)
+        // let pos = state.field.get_location(*agent);
+        // match pos {
+        //     Some(pos) => (pos.x as f32, pos.y as f32, 0.),
+        //     None => (agent.pos.x as f32, agent.pos.y as f32, 0.),
+        // }
     }
 
     /// Specify how much the texture should be scaled by. A common scale is (0.1, 0.1).
     fn scale(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> (f32, f32) {
-        (0.2, 0.2)
+        (0.02, 0.02)
     }
 
     /// Define the degrees in radians to rotate the texture by.
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
-        let concrete_agent = agent.downcast_ref::<Crab>().unwrap();
-        let rotation = if concrete_agent.last_d.x == 0. || concrete_agent.last_d.y == 0. {
-            0.
-        } else {
-            concrete_agent.last_d.y.atan2(concrete_agent.last_d.x)
-        };
-        (rotation - PI) as f32
+        0.0
     }
 
     /// Specify the code to execute for each frame, for each agent.
@@ -74,3 +67,4 @@ impl AgentRender for CrabVis {
         self.id
     }
 }
+
