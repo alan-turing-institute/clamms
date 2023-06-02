@@ -49,6 +49,14 @@ impl Agent for Walker {
                     Direction::West => self.pos.x -= 1
                 }
             }
+        } else {
+            let dir: Direction = rand::random();
+                match dir {
+                    Direction::North => self.pos.y += 1,
+                    Direction::East => self.pos.x += 1,
+                    Direction::South => self.pos.y -= 1,
+                    Direction::West => self.pos.x -= 1
+                }
         }
         
 

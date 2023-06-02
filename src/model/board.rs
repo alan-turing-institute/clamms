@@ -93,15 +93,17 @@ impl State for Board {
                 let patch: Patch;
                 if food < FOOD_PROB {
                     patch = Patch::new(id, EnvItem::food);
+
+                    id += 1;
+                    let pos = Int2D {
+                        x: i.into(),
+                        y: j.into(),
+                    };
+                    self.field.set_object_location(patch, &pos);
                 } else {
-                    patch = Patch::new(id, EnvItem::land);
+                    // patch = Patch::new(id, EnvItem::land);
                 }
-                id += 1;
-                let pos = Int2D {
-                    x: i.into(),
-                    y: j.into(),
-                };
-                self.field.set_object_location(patch, &pos);
+                
             }
         }
     }
