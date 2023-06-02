@@ -1,5 +1,6 @@
 use krabmaga::*;
 mod model;
+mod config;
 
 // Visualization specific imports
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
@@ -37,12 +38,10 @@ fn main() {
     let dim: (u16, u16) = (40, 40);
 
     let state = Board::new(dim, num_agents);
-    let mut app = Visualization::default()
+    Visualization::default()
         .with_window_dimensions(50., 50.)
         .with_simulation_dimensions(dim.0.into(), dim.1.into())
-        .with_background_color(Color::WHITE)
+        .with_background_color(Color::BEIGE)
         .with_name("Template")
-        .setup::<BoardVis, Board>(BoardVis, state);
-    app.add_system(DenseNumberGrid2D::batch_render);
-    app.run()
+        .start::<BoardVis, Board>(BoardVis, state);
 }

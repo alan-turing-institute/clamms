@@ -1,10 +1,12 @@
-use krabmaga::{engine::{state::State,fields::{sparse_object_grid_2d::SparseGrid2D}, location::Int2D}};
-use rand::{Rng};
-use super::{walker::Walker, env_item::EnvItem,};
+use super::{env_item::EnvItem, walker::Walker};
+use crate::config::FOOD_PROB;
+use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
-use krabmaga::engine::fields::dense_number_grid_2d::DenseNumberGrid2D;
+use krabmaga::engine::{
+    fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
+};
+use rand::Rng;
 use std::hash::{Hash, Hasher};
-use core::fmt;
 
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
@@ -15,10 +17,7 @@ pub struct Patch {
 
 impl Patch {
     pub fn new(id: u32, env_item: EnvItem) -> Self {
-        Patch {
-            id,
-            env_item,
-        }
+        Patch { id, env_item }
     }
 }
 
@@ -45,10 +44,9 @@ impl PartialEq for Patch {
 //     }
 // }
 
-
 pub struct Board {
     pub step: u64,
-    pub field: DenseNumberGrid2D<Patch>,
+    pub field: DenseGrid2D<Patch>,
     pub agents_field: SparseGrid2D<Walker>,
     pub dim: (u16, u16),
     pub num_agents: usize,
@@ -56,12 +54,18 @@ pub struct Board {
 
 impl Board {
     pub fn new(dim: (u16, u16), num_agents: usize) -> Board {
-        Board { step: 0, agents_field: SparseGrid2D::new(dim.0.into(), dim.0.into()), field: DenseNumberGrid2D::new(dim.0.into(), dim.1.into()), dim, num_agents }
+        Board {
+            step: 0,
+            agents_field: SparseGrid2D::new(dim.0.into(), dim.0.into()),
+            field: DenseGrid2D::new(dim.0.into(), dim.1.into()),
+            dim,
+            num_agents,
+        }
     }
 }
 
 impl State for Board {
-    fn init(&mut self,schedule: &mut krabmaga::engine::schedule::Schedule) {
+    fn init(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
         self.step = 0;
         let mut rng = rand::thread_rng();
 
@@ -73,7 +77,10 @@ impl State for Board {
 
             let agent = Walker {
                 id,
-                pos: Int2D { x: x.into(), y: y.into() }
+                pos: Int2D {
+                    x: x.into(),
+                    y: y.into(),
+                },
             };
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
@@ -82,51 +89,51 @@ impl State for Board {
         let mut id = 0;
         for i in 0..self.dim.0 {
             for j in 0..self.dim.1 {
-                let food: u16 = rng.gen_range(0..=1);
+                let food: u16 = rng.gen_range(0..100);
                 let patch: Patch;
-                if food == 1 {
+                if food < FOOD_PROB {
                     patch = Patch::new(id, EnvItem::food);
                 } else {
                     patch = Patch::new(id, EnvItem::land);
                 }
                 id += 1;
-                let pos = Int2D { x: i.into(), y: j.into() };
-                self.field.set_value_location(patch, &pos);
+                let pos = Int2D {
+                    x: i.into(),
+                    y: j.into(),
+                };
+                self.field.set_object_location(patch, &pos);
             }
-        } 
+        }
     }
 
-    fn after_step(&mut self,schedule: &mut krabmaga::engine::schedule::Schedule) {
+    fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
         self.step += 1
     }
 
-    fn as_any(&self) ->  &dyn std::any::Any {
+    fn as_any(&self) -> &dyn std::any::Any {
         self
     }
 
-    fn as_any_mut(&mut self) ->  &mut dyn std::any::Any {
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
     }
 
-    fn as_state(&self) ->  &dyn State {
+    fn as_state(&self) -> &dyn State {
         self
     }
 
-    fn as_state_mut(&mut self) ->  &mut dyn State {
+    fn as_state_mut(&mut self) -> &mut dyn State {
         self
     }
 
-    fn update(&mut self, step:u64) {
-        if step == 0 {
-            self.field.lazy_update();
-        }
+    fn update(&mut self, step: u64) {
+        self.field.lazy_update();
         self.agents_field.lazy_update();
     }
 
     fn reset(&mut self) {
         self.step = 0;
-        self.field = DenseNumberGrid2D::new(self.dim.0.into(), self.dim.1.into());
+        self.field = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
         self.agents_field = SparseGrid2D::new(self.dim.0.into(), self.dim.1.into());
     }
 }
-
