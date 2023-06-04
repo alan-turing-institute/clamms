@@ -1,2 +1,3 @@
-// expressed as int x/100
-pub const FOOD_PROB:u16 = 1;
+
+pub const TREE_PROB:f32 = 0.1;
+pub const SWEET_PROB:f32 = 0.01;

@@ -33,13 +33,13 @@ fn main() {
     use model::board::Board;
 
     let num_agents = 4;
-    let dim: (u16, u16) = (40, 40);
+    let dim: (u16, u16) = (20, 20);
 
     let state = Board::new(dim, num_agents);
     Visualization::default()
-        .with_window_dimensions(50., 50.)
-        .with_simulation_dimensions(dim.0.into(), dim.1.into())
-        .with_background_color(Color::BEIGE)
+        // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
+        .with_simulation_dimensions((dim.0+2).into(), (dim.1+2).into())
+        .with_background_color(Color::GRAY)
         .with_name("Template")
         .start::<BoardVis, Board>(BoardVis, state);
 }

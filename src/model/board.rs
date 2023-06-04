@@ -1,5 +1,4 @@
 use super::{env_item::EnvItem, walker::Walker};
-use crate::config::FOOD_PROB;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -70,8 +69,8 @@ impl State for Board {
         let mut rng = rand::thread_rng();
 
         for _ in 0..self.num_agents {
-            let x: u16 = rng.gen_range(0..self.dim.0);
-            let y: u16 = rng.gen_range(0..self.dim.1);
+            let x: u16 = rng.gen_range(1..=self.dim.0);
+            let y: u16 = rng.gen_range(1..=self.dim.1);
 
             let id: u32 = rng.gen();
 
@@ -87,23 +86,16 @@ impl State for Board {
         }
 
         let mut id = 0;
-        for i in 0..self.dim.0 {
-            for j in 0..self.dim.1 {
-                let food: u16 = rng.gen_range(0..100);
-                let patch: Patch;
-                if food < FOOD_PROB {
-                    patch = Patch::new(id, EnvItem::food);
-
-                    id += 1;
-                    let pos = Int2D {
-                        x: i.into(),
-                        y: j.into(),
-                    };
-                    self.field.set_object_location(patch, &pos);
-                } else {
-                    // patch = Patch::new(id, EnvItem::land);
-                }
-                
+        for i in 1..=self.dim.0 {
+            for j in 1..=self.dim.1 {
+                let pos = Int2D {
+                    x: i.into(),
+                    y: j.into(),
+                };
+                let item: EnvItem = rand::random();
+                let patch = Patch::new(id, item);
+                self.field.set_object_location(patch, &pos);
+                id += 1;
             }
         }
     }

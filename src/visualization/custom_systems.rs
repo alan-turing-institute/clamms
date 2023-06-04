@@ -19,17 +19,24 @@ impl RenderObjectGrid2D<Board, Patch> for DenseGrid2D<Patch> {
     fn fetch_emoji(state: &Board, obj: &Patch) -> String {
         let obj_real = state.field.get(obj).unwrap();
         return match obj_real.env_item {
-            EnvItem::food => "evergreen_tree".to_string(),
-            EnvItem::land => "house".to_string(),
+            EnvItem::Tree => "tree".to_string(),
+            EnvItem::Land => "land".to_string(),
+            EnvItem::Sweet => "sweet".to_string(),
         }
     }
     fn fetch_loc(state: &Board, obj: &Patch) -> Option<Int2D> {
-        state.field.get_location(*obj)
+        if let Some(loc) = state.field.get_location(*obj) {
+            // shift environment object grid up by 1, to align it with
+            // the agent grid
+            Some(Int2D {x:loc.x, y:loc.y+1})
+        } else {
+            None
+        }
     }
     fn fetch_rotation(_state: &Board, _obj: &Patch) -> f32 {
         0.0
     }
     fn scale(_obj: &Patch) -> (f32, f32) {
-        (0.02, 0.02)
+        (0.016, 0.016)
     }
 }

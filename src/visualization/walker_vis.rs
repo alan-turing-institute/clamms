@@ -23,7 +23,7 @@ impl AgentRender for WalkerVis {
     fn location(&self, agent: &Box<dyn Agent>, state: &Box<&dyn State>) -> (f32, f32, f32) {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
         let agent = agent.downcast_ref::<Walker>().unwrap();
-        (agent.pos.x as f32, agent.pos.y as f32, 0.)
+        (agent.pos.x as f32, agent.pos.y as f32, 2.)
         // let pos = state.field.get_location(*agent);
         // match pos {
         //     Some(pos) => (pos.x as f32, pos.y as f32, 0.),
@@ -33,7 +33,7 @@ impl AgentRender for WalkerVis {
 
     /// Specify how much the texture should be scaled by. A common scale is (0.1, 0.1).
     fn scale(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> (f32, f32) {
-        (0.02, 0.02)
+        (0.016, 0.016)
     }
 
     /// Define the degrees in radians to rotate the texture by.
