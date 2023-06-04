@@ -1,4 +1,6 @@
+use super::walker::{Policy, PolicyTemplate};
 use super::{env_item::EnvItem, walker::Walker};
+use dfdx::tensor::Cpu;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -6,6 +8,8 @@ use krabmaga::engine::{
 };
 use rand::Rng;
 use std::hash::{Hash, Hasher};
+use dfdx::nn::DeviceBuildExt;
+
 
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
@@ -48,17 +52,24 @@ pub struct Board {
     pub field: DenseGrid2D<Patch>,
     pub agents_field: SparseGrid2D<Walker>,
     pub dim: (u16, u16),
-    pub num_agents: usize,
+    pub num_agents: u32,
+    pub policies: std::collections::HashMap<u32,Policy>
 }
 
 impl Board {
-    pub fn new(dim: (u16, u16), num_agents: usize) -> Board {
+    pub fn new(dim: (u16, u16), num_agents: u32) -> Board {
+        let mut policy_map :std::collections::HashMap<u32,Policy> = Default::default();
+        for i in 0..num_agents {
+            let dev: Cpu = Default::default();
+            policy_map.insert(i.into(), dev.build_module::<PolicyTemplate, f32>());
+        }
         Board {
             step: 0,
             agents_field: SparseGrid2D::new(dim.0.into(), dim.0.into()),
             field: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
+            policies: policy_map
         }
     }
 }
@@ -68,18 +79,17 @@ impl State for Board {
         self.step = 0;
         let mut rng = rand::thread_rng();
 
-        for _ in 0..self.num_agents {
+        for id in 0..self.num_agents {
             let x: u16 = rng.gen_range(1..=self.dim.0);
             let y: u16 = rng.gen_range(1..=self.dim.1);
 
-            let id: u32 = rng.gen();
-
+            let dev: Cpu = Default::default();
             let agent = Walker {
                 id,
                 pos: Int2D {
                     x: x.into(),
                     y: y.into(),
-                },
+                }
             };
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);

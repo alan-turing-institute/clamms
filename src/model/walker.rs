@@ -1,3 +1,9 @@
+use dfdx::prelude::Module;
+use dfdx::prelude::ReLU;
+use dfdx::prelude::Linear as LinearT;
+use dfdx::nn::modules::Linear;
+use dfdx::shapes::{Rank1, Const};
+use dfdx::tensor::{Tensor, Cpu, TensorFromVec};
 use krabmaga::engine::{agent::Agent,location::Int2D};
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
@@ -6,15 +12,19 @@ use rand::{
     Rng,
 };
 use std::hash::{Hash, Hasher};
+use crate::model::action::Action;
+
 use super::board::Board;
 use super::env_item::EnvItem;
-use core::fmt;
+use super::observation::Observation;
 
+pub type Policy = (Linear<8,16,f32,Cpu>, ReLU, Linear<16,4,f32,Cpu>);
+pub type PolicyTemplate = (LinearT<8,16>, ReLU, LinearT<16,4>);
 
-#[derive(Clone,Copy)]
+#[derive(Clone, Copy)]
 pub struct Walker {
     pub id: u32,
-    pub pos: Int2D,
+    pub pos: Int2D
 }
 
 #[derive(Debug)]
@@ -38,16 +48,19 @@ impl Distribution<Direction> for Standard {
 
 impl Agent for Walker {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
+
+        let obs = self.make_obs(state);
+        let act = self.do_action(state, obs);
+
         let state = state.as_any().downcast_ref::<Board>().unwrap();
         let item = state.field.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
             EnvItem::Land => {
-                let dir: Direction = rand::random();
-                match dir {
-                    Direction::North => self.pos.y += 1,
-                    Direction::East => self.pos.x += 1,
-                    Direction::South => self.pos.y -= 1,
-                    Direction::West => self.pos.x -= 1
+                match act {
+                    Action::North => self.pos.y += 1,
+                    Action::East => self.pos.x += 1,
+                    Action::South => self.pos.y -= 1,
+                    Action::West => self.pos.x -= 1
                 }
             },
             EnvItem::Tree => {},
@@ -111,5 +124,49 @@ impl Hash for Walker {
         H: Hasher,
     {
         self.id.hash(state);
+    }
+}
+
+
+impl Walker {
+    pub fn make_obs(&self, state: &mut dyn krabmaga::engine::state::State) -> Observation {
+        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        let dev: Cpu = Default::default();
+        let mut view_build = Vec::new();
+        let x = self.pos.x;
+        let y = self.pos.y;
+        let surround = vec![(x-1,y+1),(x,y+1),(x+1,y+1),(x-1,y),(x+1,y),(x-1,y-1),(x,y-1),(x+1,y-1)];
+        for (x,y) in surround {
+            if let Some(obj) = state.field.get_objects(&Int2D{x,y}) {
+                if let EnvItem::Tree = obj[0].env_item {
+                    view_build.push(1.0)
+                } else {
+                    view_build.push(0.0)
+                }
+            } else {
+                view_build.push(0.0)
+            }
+        }
+        let view: Tensor<Rank1<8>,f32,Cpu> = dev.tensor_from_vec(view_build,(Const,));
+        
+        Observation { view, }
+    }
+
+    pub fn do_action(&self, state: &mut dyn krabmaga::engine::state::State, obs: Observation) -> Action {
+        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        let policy = state.policies.get(&self.id).expect("policy held fr each agent");
+        let y = policy.forward(obs.view);
+        let max_idx = y.as_vec()
+            .iter()
+            .enumerate()
+            .max_by(|(_, a), (_, b)| a.total_cmp(b))
+            .map(|(index, _)| index)
+            .unwrap();
+        match max_idx {
+            0 => Action::North,
+            1 => Action::East,
+            2 => Action::South,
+            _ => Action::West 
+        }
     }
 }
