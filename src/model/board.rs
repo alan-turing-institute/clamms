@@ -50,11 +50,11 @@ pub struct Board {
     pub resource_grid: DenseGrid2D<Patch>,
     pub agent_grid: SparseGrid2D<Forager>,
     pub dim: (u16, u16),
-    pub num_agents: usize,
+    pub num_agents: u8,
 }
 
 impl Board {
-    pub fn new(dim: (u16, u16), num_agents: usize) -> Board {
+    pub fn new(dim: (u16, u16), num_agents: u8) -> Board {
         Board {
             step: 0,
             agent_grid: SparseGrid2D::new(dim.0.into(), dim.0.into()),
@@ -70,11 +70,11 @@ impl State for Board {
         self.step = 0;
         let mut rng = rand::thread_rng();
 
-        for _ in 0..self.num_agents {
+        for n in 0..self.num_agents {
             let x: u16 = rng.gen_range(1..=self.dim.0);
             let y: u16 = rng.gen_range(1..=self.dim.1);
 
-            let id: u32 = rng.gen();
+            let id: u32 = n.into();
 
             let agent = Forager::new(
                 id,

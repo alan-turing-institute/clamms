@@ -1,6 +1,10 @@
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::inventory::Inventory;
+use crate::config::{
+    FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
+    WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
+};
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
@@ -20,31 +24,48 @@ pub struct Forager {
 }
 
 #[derive(Debug)]
+/// Direction of movement.
 pub enum Direction {
     North,
     East,
     South,
     West,
+    Stationary,
 }
 
 impl Distribution<Direction> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Direction {
-        match rng.gen_range(0..=3) {
+        match rng.gen_range(0..=4) {
             0 => Direction::North,
             1 => Direction::East,
             2 => Direction::South,
-            _ => Direction::West,
+            3 => Direction::West,
+            _ => Direction::Stationary,
         }
     }
 }
 
 impl Inventory for Forager {
-    fn count(&self, resource: Resource) -> i32 {
+    /// Returns the amount of a given resource in the inventory.
+    fn count(&self, resource: &Resource) -> i32 {
         match resource {
             Resource::Food => self.food,
             Resource::Water => self.water,
         }
     }
+
+    fn acquire(&mut self, resource: &Resource, quantity: i32) {
+        match resource {
+            Resource::Food => self.food += quantity,
+            Resource::Water => self.water += quantity,
+        }
+        self.food = self.food.min(FOOD_MAX_INVENTORY);
+        self.water = self.water.min(WATER_MAX_INVENTORY);
+    }
+
+    // fn consume(&mut self, resource: &Resource, quantity: i32) {
+    //     todo!()
+    // }
 }
 
 impl Agent for Forager {
@@ -52,17 +73,24 @@ impl Agent for Forager {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
-            EnvItem::Land => {
-                let dir: Direction = rand::random();
-                match dir {
-                    Direction::North => self.pos.y += 1,
-                    Direction::East => self.pos.x += 1,
-                    Direction::South => self.pos.y -= 1,
-                    Direction::West => self.pos.x -= 1,
-                }
+            EnvItem::Land => {}
+            EnvItem::Resource(Resource::Food) => self.acquire(&Resource::Food, FOOD_ACQUIRE_RATE),
+            EnvItem::Resource(Resource::Water) => {
+                self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
             }
-            EnvItem::Resource(_) => {}
         }
+
+        let dir: Direction = rand::random();
+        match dir {
+            Direction::North => self.pos.y += 1,
+            Direction::East => self.pos.x += 1,
+            Direction::South => self.pos.y -= 1,
+            Direction::West => self.pos.x -= 1,
+            Direction::Stationary => (),
+        }
+
+        self.consume(&Resource::Food, FOOD_CONSUME_RATE);
+        self.consume(&Resource::Water, WATER_CONSUME_RATE);
 
         if self.pos.x > state.dim.0.into() {
             self.pos.x = state.dim.0.into()
@@ -82,6 +110,12 @@ impl Agent for Forager {
                 y: self.pos.y,
             },
         );
+        if self.id == 0 {
+            println!(
+                "agent: {:?}, food: {:?}, water: {:?}",
+                self.id, self.food, self.water
+            );
+        }
     }
 }
 
