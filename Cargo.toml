@@ -7,8 +7,17 @@ edition = "2021"
 
 # [lib]
 # path = "src/lib.rs"
-[lib]
+# [lib]
 # crate-type = ["cdylib", "rlib"]
+
+# [[bin]]
+# src = "main.rs"
+# name = "main"
+
+# [[bin]]
+# src = "main2.rs"
+# name = "main2"
+
 
 [dependencies]
 krabmaga = "0.3.*"
