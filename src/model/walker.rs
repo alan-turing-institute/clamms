@@ -1,5 +1,5 @@
 use super::board::Board;
-use super::env_item::EnvItem;
+use super::environment::EnvItem;
 use core::fmt;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
@@ -38,7 +38,7 @@ impl Distribution<Direction> for Standard {
 impl Agent for Walker {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        let item = state.field.get_objects(&self.pos).unwrap()[0].env_item;
+        let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
             EnvItem::Land => {
                 let dir: Direction = rand::random();
@@ -51,6 +51,7 @@ impl Agent for Walker {
             }
             EnvItem::Tree => {}
             EnvItem::Sweet => {}
+            EnvItem::Resource(_) => {}
         }
 
         if self.pos.x > state.dim.0.into() {
@@ -64,7 +65,7 @@ impl Agent for Walker {
             self.pos.y = 1
         }
 
-        state.agents_field.set_object_location(
+        state.agent_grid.set_object_location(
             *self,
             &Int2D {
                 x: self.pos.x,
@@ -76,7 +77,7 @@ impl Agent for Walker {
     // removes agent from simulation
     fn is_stopped(&mut self, state: &mut dyn State) -> bool {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        if let EnvItem::Sweet = state.field.get_objects(&self.pos).unwrap()[0].env_item {
+        if let EnvItem::Sweet = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item {
             true
         } else {
             false

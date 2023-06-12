@@ -1,4 +1,4 @@
-use super::{env_item::EnvItem, walker::Walker};
+use super::{environment::EnvItem, walker::Walker};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -45,8 +45,8 @@ impl PartialEq for Patch {
 
 pub struct Board {
     pub step: u64,
-    pub field: DenseGrid2D<Patch>,
-    pub agents_field: SparseGrid2D<Walker>,
+    pub resource_grid: DenseGrid2D<Patch>,
+    pub agent_grid: SparseGrid2D<Walker>,
     pub dim: (u16, u16),
     pub num_agents: usize,
 }
@@ -55,8 +55,8 @@ impl Board {
     pub fn new(dim: (u16, u16), num_agents: usize) -> Board {
         Board {
             step: 0,
-            agents_field: SparseGrid2D::new(dim.0.into(), dim.0.into()),
-            field: DenseGrid2D::new(dim.0.into(), dim.1.into()),
+            agent_grid: SparseGrid2D::new(dim.0.into(), dim.0.into()),
+            resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
         }
@@ -94,7 +94,7 @@ impl State for Board {
                 };
                 let item: EnvItem = rand::random();
                 let patch = Patch::new(id, item);
-                self.field.set_object_location(patch, &pos);
+                self.resource_grid.set_object_location(patch, &pos);
                 id += 1;
             }
         }
@@ -122,13 +122,13 @@ impl State for Board {
 
     fn update(&mut self, step: u64) {
         // lazy_update stops the field being searchable!
-        self.field.update();
-        self.agents_field.lazy_update();
+        self.resource_grid.update();
+        self.agent_grid.lazy_update();
     }
 
     fn reset(&mut self) {
         self.step = 0;
-        self.field = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
-        self.agents_field = SparseGrid2D::new(self.dim.0.into(), self.dim.1.into());
+        self.resource_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
+        self.agent_grid = SparseGrid2D::new(self.dim.0.into(), self.dim.1.into());
     }
 }

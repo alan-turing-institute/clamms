@@ -30,7 +30,7 @@ impl VisualizationState<Board> for BoardVis {
         _schedule: &mut Schedule,
         _sim: &mut SimulationDescriptor,
     ) {
-        _state.field.update();
+        _state.resource_grid.update();
         DenseGrid2D::<Patch>::init_graphics_grid(_sprite_factory, _commands, _state);
     }
 
@@ -50,7 +50,7 @@ impl VisualizationState<Board> for BoardVis {
         state: &Box<&dyn State>,
     ) -> Option<Box<dyn Agent>> {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        match state.agents_field.get(&Walker {
+        match state.agent_grid.get(&Walker {
             id: agent_render.get_id(),
             pos: Int2D { x: 0, y: 0 },
         }) {

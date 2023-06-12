@@ -11,6 +11,7 @@ pub enum EnvItem {
     Tree,
     Land,
     Sweet,
+    Resource(Resource),
 }
 
 impl Distribution<EnvItem> for Standard {
@@ -26,3 +27,6 @@ impl Distribution<EnvItem> for Standard {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum Resource {}

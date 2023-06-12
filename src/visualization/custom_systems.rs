@@ -1,5 +1,5 @@
 use crate::model::board::*;
-use crate::model::env_item::EnvItem;
+use crate::model::environment::EnvItem;
 use krabmaga::bevy::ecs::component::TableStorage;
 use krabmaga::bevy::prelude::Component;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
@@ -16,18 +16,19 @@ impl RenderObjectGrid2D<Board, Patch> for DenseGrid2D<Patch> {
         None
     }
     fn fetch_dense_grid(state: &Board) -> Option<&DenseGrid2D<Patch>> {
-        Some(&state.field)
+        Some(&state.resource_grid)
     }
     fn fetch_emoji(state: &Board, obj: &Patch) -> String {
-        let obj_real = state.field.get(obj).unwrap();
+        let obj_real = state.resource_grid.get(obj).unwrap();
         return match obj_real.env_item {
             EnvItem::Tree => "tree".to_string(),
             EnvItem::Land => "land".to_string(),
             EnvItem::Sweet => "sweet".to_string(),
+            EnvItem::Resource(r) => format!("{:?}", r),
         };
     }
     fn fetch_loc(state: &Board, obj: &Patch) -> Option<Int2D> {
-        if let Some(loc) = state.field.get_location(*obj) {
+        if let Some(loc) = state.resource_grid.get_location(*obj) {
             // shift environment object grid up by 1, to align it with
             // the agent grid
             Some(Int2D {
