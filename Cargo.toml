@@ -5,18 +5,7 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-# [lib]
-# path = "src/lib.rs"
-# [lib]
-# crate-type = ["cdylib", "rlib"]
-
-# [[bin]]
-# src = "main.rs"
-# name = "main"
-
-# [[bin]]
-# src = "main2.rs"
-# name = "main2"
+# TODO: consider refactoring into lib crate/workspace of lib and bin crate
 
 
 [dependencies]
