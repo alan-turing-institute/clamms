@@ -21,10 +21,8 @@ impl RenderObjectGrid2D<Board, Patch> for DenseGrid2D<Patch> {
     fn fetch_emoji(state: &Board, obj: &Patch) -> String {
         let obj_real = state.resource_grid.get(obj).unwrap();
         return match obj_real.env_item {
-            EnvItem::Tree => "tree".to_string(),
             EnvItem::Land => "land".to_string(),
-            EnvItem::Sweet => "sweet".to_string(),
-            EnvItem::Resource(r) => format!("{:?}", r),
+            EnvItem::Resource(r) => r.texture(),
         };
     }
     fn fetch_loc(state: &Board, obj: &Patch) -> Option<Int2D> {

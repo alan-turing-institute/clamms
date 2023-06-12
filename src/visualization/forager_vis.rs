@@ -1,4 +1,4 @@
-use crate::model::{board::Board, walker::Walker};
+use crate::model::{board::Board, forager::Forager};
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::prelude::{Component, Quat, Transform, Visibility};
 use krabmaga::{
@@ -7,11 +7,11 @@ use krabmaga::{
 };
 
 #[derive(Component)]
-pub struct WalkerVis {
+pub struct ForagerVis {
     pub(crate) id: u32,
 }
 
-impl AgentRender for WalkerVis {
+impl AgentRender for ForagerVis {
     /// Specify the assets to use. Swap "bird" with the file name of whatever emoji you want to use.
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
@@ -22,7 +22,7 @@ impl AgentRender for WalkerVis {
     /// Specify where the agent should be rendered in the window.
     fn location(&self, agent: &Box<dyn Agent>, state: &Box<&dyn State>) -> (f32, f32, f32) {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        let agent = agent.downcast_ref::<Walker>().unwrap();
+        let agent = agent.downcast_ref::<Forager>().unwrap();
         (agent.pos.x as f32, agent.pos.y as f32, 2.)
         // let pos = state.field.get_location(*agent);
         // match pos {

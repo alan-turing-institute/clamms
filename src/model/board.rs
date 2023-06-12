@@ -1,4 +1,4 @@
-use super::{environment::EnvItem, walker::Walker};
+use super::{environment::EnvItem, forager::Forager};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -46,7 +46,7 @@ impl PartialEq for Patch {
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
-    pub agent_grid: SparseGrid2D<Walker>,
+    pub agent_grid: SparseGrid2D<Forager>,
     pub dim: (u16, u16),
     pub num_agents: usize,
 }
@@ -74,7 +74,7 @@ impl State for Board {
 
             let id: u32 = rng.gen();
 
-            let agent = Walker {
+            let agent = Forager {
                 id,
                 pos: Int2D {
                     x: x.into(),

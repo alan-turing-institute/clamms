@@ -1,6 +1,6 @@
 use crate::model::board::{Board, Patch};
-use crate::model::walker::Walker;
-use crate::visualization::walker_vis::WalkerVis;
+use crate::model::forager::Forager;
+use crate::visualization::forager_vis::ForagerVis;
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::ecs::system::Resource;
 use krabmaga::bevy::prelude::Commands;
@@ -39,8 +39,8 @@ impl VisualizationState<Board> for BoardVis {
         agent: &Box<dyn Agent>,
         _state: &Board,
     ) -> Option<Box<dyn AgentRender>> {
-        Some(Box::new(WalkerVis {
-            id: agent.downcast_ref::<Walker>().unwrap().id,
+        Some(Box::new(ForagerVis {
+            id: agent.downcast_ref::<Forager>().unwrap().id,
         }))
     }
 
@@ -50,7 +50,7 @@ impl VisualizationState<Board> for BoardVis {
         state: &Box<&dyn State>,
     ) -> Option<Box<dyn Agent>> {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        match state.agent_grid.get(&Walker {
+        match state.agent_grid.get(&Forager {
             id: agent_render.get_id(),
             pos: Int2D { x: 0, y: 0 },
         }) {

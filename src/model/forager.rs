@@ -1,6 +1,5 @@
 use super::board::Board;
 use super::environment::EnvItem;
-use core::fmt;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
@@ -11,7 +10,7 @@ use rand::{
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
-pub struct Walker {
+pub struct Forager {
     pub id: u32,
     pub pos: Int2D,
 }
@@ -35,7 +34,7 @@ impl Distribution<Direction> for Standard {
     }
 }
 
-impl Agent for Walker {
+impl Agent for Forager {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
@@ -49,8 +48,6 @@ impl Agent for Walker {
                     Direction::West => self.pos.x -= 1,
                 }
             }
-            EnvItem::Tree => {}
-            EnvItem::Sweet => {}
             EnvItem::Resource(_) => {}
         }
 
@@ -73,19 +70,9 @@ impl Agent for Walker {
             },
         );
     }
-
-    // removes agent from simulation
-    fn is_stopped(&mut self, state: &mut dyn State) -> bool {
-        let state = state.as_any().downcast_ref::<Board>().unwrap();
-        if let EnvItem::Sweet = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item {
-            true
-        } else {
-            false
-        }
-    }
 }
 
-impl Location2D<Int2D> for Walker {
+impl Location2D<Int2D> for Forager {
     fn get_location(self) -> Int2D {
         self.pos
     }
@@ -95,21 +82,21 @@ impl Location2D<Int2D> for Walker {
     }
 }
 
-// impl fmt::Display for Walker {
+// impl fmt::Display for Forager {
 //     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 //         write!(f, "{}", self.id)
 //     }
 // }
 
-impl Eq for Walker {}
+impl Eq for Forager {}
 
-impl PartialEq for Walker {
-    fn eq(&self, other: &Walker) -> bool {
+impl PartialEq for Forager {
+    fn eq(&self, other: &Forager) -> bool {
         self.id == other.id
     }
 }
 
-impl Hash for Walker {
+impl Hash for Forager {
     fn hash<H>(&self, state: &mut H)
     where
         H: Hasher,
