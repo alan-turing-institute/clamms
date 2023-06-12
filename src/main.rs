@@ -1,6 +1,6 @@
 use krabmaga::*;
-mod model;
 mod config;
+mod model;
 
 // Visualization specific imports
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
@@ -29,7 +29,6 @@ fn main() {
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
-
     use model::board::Board;
 
     let num_agents = 4;
@@ -38,7 +37,7 @@ fn main() {
     let state = Board::new(dim, num_agents);
     Visualization::default()
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
-        .with_simulation_dimensions((dim.0+2).into(), (dim.1+2).into())
+        .with_simulation_dimensions((dim.0 + 2).into(), (dim.1 + 2).into())
         .with_background_color(Color::GRAY)
         .with_name("Template")
         .start::<BoardVis, Board>(BoardVis, state);

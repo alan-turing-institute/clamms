@@ -5,4 +5,15 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+# [lib]
+# path = "src/lib.rs"
+[lib]
+# crate-type = ["cdylib", "rlib"]
+
 [dependencies]
+krabmaga = "0.3.*"
+rand = "0.8.5"
+
+[features]
+visualization = ["krabmaga/visualization"]
+visualization_wasm = ["krabmaga/visualization_wasm"]
