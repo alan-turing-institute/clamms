@@ -1,3 +1,5 @@
+use crate::config::{INIT_FOOD, INIT_WATER};
+
 use super::{environment::EnvItem, forager::Forager};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
@@ -74,13 +76,16 @@ impl State for Board {
 
             let id: u32 = rng.gen();
 
-            let agent = Forager {
+            let agent = Forager::new(
                 id,
-                pos: Int2D {
+                Int2D {
                     x: x.into(),
                     y: y.into(),
                 },
-            };
+                INIT_FOOD,
+                INIT_WATER,
+            );
+
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
         }

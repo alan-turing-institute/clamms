@@ -1,5 +1,6 @@
 use super::board::Board;
-use super::environment::EnvItem;
+use super::environment::{EnvItem, Resource};
+use super::inventory::Inventory;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
@@ -7,12 +8,15 @@ use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
+use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Forager {
     pub id: u32,
     pub pos: Int2D,
+    food: i32,
+    water: i32,
 }
 
 #[derive(Debug)]
@@ -30,6 +34,15 @@ impl Distribution<Direction> for Standard {
             1 => Direction::East,
             2 => Direction::South,
             _ => Direction::West,
+        }
+    }
+}
+
+impl Inventory for Forager {
+    fn count(&self, resource: Resource) -> i32 {
+        match resource {
+            Resource::Food => self.food,
+            Resource::Water => self.water,
         }
     }
 }
@@ -102,5 +115,29 @@ impl Hash for Forager {
         H: Hasher,
     {
         self.id.hash(state);
+    }
+}
+
+impl Forager {
+    pub fn new(id: u32, pos: Int2D, food: i32, water: i32) -> Self {
+        Self {
+            id,
+            pos,
+            food,
+            water,
+        }
+    }
+
+    /// Dummy forager for matching just on ID.
+    pub fn dummy(id: u32) -> Self {
+        Forager {
+            id,
+            pos: Int2D {
+                x: Default::default(),
+                y: Default::default(),
+            },
+            food: 0,
+            water: 0,
+        }
     }
 }

@@ -50,10 +50,7 @@ impl VisualizationState<Board> for BoardVis {
         state: &Box<&dyn State>,
     ) -> Option<Box<dyn Agent>> {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        match state.agent_grid.get(&Forager {
-            id: agent_render.get_id(),
-            pos: Int2D { x: 0, y: 0 },
-        }) {
+        match state.agent_grid.get(&Forager::dummy(agent_render.get_id())) {
             Some(matching_agent) => Some(Box::new(matching_agent)),
             None => None,
         }
