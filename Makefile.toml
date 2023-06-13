@@ -5,6 +5,7 @@ CARGO_WASM_PATH = "${CARGO_TARGET_DIR}/wasm32-unknown-unknown/${ENV_DIR}/${CARGO
 CARGO_PROFILE = "dev"
 TARGET_DIR = "target"
 CARGO_MANIFEST_DIR = "${CARGO_MAKE_WORKING_DIRECTORY}"
+CLAMMS_CONFIG = { value = "clamms-config.toml", relative = true, condition = {env_not_set = ["CLAMMS_CONFIG"]}}
 
 [env.release]
 CARGO_RELEASE_ARGS = "--release"
