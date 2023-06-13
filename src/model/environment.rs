@@ -6,7 +6,8 @@ use rand::{
     Rng,
 };
 
-use crate::config::{FOOD_ABUNDANCE, WATER_ABUNDANCE};
+// use crate::config::{CORE_CONFIG.world. FOOD_ABUNDANCE, WATER_ABUNDANCE};
+use crate::config::CORE_CONFIG;
 
 #[derive(Clone, Copy, Debug)]
 pub enum EnvItem {
@@ -18,9 +19,9 @@ impl Distribution<EnvItem> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> EnvItem {
         let mut rng = thread_rng();
         let pick: f32 = rng.gen();
-        if pick < FOOD_ABUNDANCE {
+        if pick < CORE_CONFIG.world.FOOD_ABUNDANCE {
             EnvItem::Resource(Resource::Food)
-        } else if pick < FOOD_ABUNDANCE + WATER_ABUNDANCE {
+        } else if pick < CORE_CONFIG.world.FOOD_ABUNDANCE + CORE_CONFIG.world.WATER_ABUNDANCE {
             EnvItem::Resource(Resource::Water)
         } else {
             EnvItem::Land

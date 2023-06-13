@@ -1,10 +1,12 @@
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::inventory::Inventory;
-use crate::config::{
-    FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
-    WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
-};
+
+use crate::config::CORE_CONFIG;
+// use crate::config::{
+//     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
+//     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
+// };
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
@@ -59,8 +61,8 @@ impl Inventory for Forager {
             Resource::Food => self.food += quantity,
             Resource::Water => self.water += quantity,
         }
-        self.food = self.food.min(FOOD_MAX_INVENTORY);
-        self.water = self.water.min(WATER_MAX_INVENTORY);
+        self.food = self.food.min(CORE_CONFIG.agent.FOOD_MAX_INVENTORY);
+        self.water = self.water.min(CORE_CONFIG.agent.WATER_MAX_INVENTORY);
     }
 
     // fn consume(&mut self, resource: &Resource, quantity: i32) {
@@ -74,9 +76,11 @@ impl Agent for Forager {
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
             EnvItem::Land => {}
-            EnvItem::Resource(Resource::Food) => self.acquire(&Resource::Food, FOOD_ACQUIRE_RATE),
+            EnvItem::Resource(Resource::Food) => {
+                self.acquire(&Resource::Food, CORE_CONFIG.agent.FOOD_ACQUIRE_RATE)
+            }
             EnvItem::Resource(Resource::Water) => {
-                self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
+                self.acquire(&Resource::Water, CORE_CONFIG.agent.WATER_ACQUIRE_RATE)
             }
         }
 
@@ -89,8 +93,8 @@ impl Agent for Forager {
             Direction::Stationary => (),
         }
 
-        self.consume(&Resource::Food, FOOD_CONSUME_RATE);
-        self.consume(&Resource::Water, WATER_CONSUME_RATE);
+        self.consume(&Resource::Food, CORE_CONFIG.agent.FOOD_CONSUME_RATE);
+        self.consume(&Resource::Water, CORE_CONFIG.agent.WATER_CONSUME_RATE);
 
         // Clamp positions to be 1 <= pos < dim
         self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());

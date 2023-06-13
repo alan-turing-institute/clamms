@@ -1,4 +1,5 @@
-use crate::config::{INIT_FOOD, INIT_WATER};
+// use crate::config::{INIT_FOOD, INIT_WATER};
+use crate::config::CORE_CONFIG;
 
 use super::{environment::EnvItem, forager::Forager};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
@@ -82,8 +83,8 @@ impl State for Board {
                     x: x.into(),
                     y: y.into(),
                 },
-                INIT_FOOD,
-                INIT_WATER,
+                CORE_CONFIG.agent.INIT_FOOD,
+                CORE_CONFIG.agent.INIT_WATER,
             );
 
             // Put the agent in your state
