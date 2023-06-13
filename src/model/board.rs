@@ -2,6 +2,7 @@ use super::environment::Resource;
 use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
 use crate::config::{INIT_FOOD, INIT_WATER};
+use strum::IntoEnumIterator;
 use krabmaga::HashMap;
 // use hashbrown::HashMap;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
@@ -95,6 +96,10 @@ impl State for Board {
 
             // Init empty history
             self.agent_histories.insert(id, History::new());
+            // Init empty resource locations
+            for resource in Resource::iter() {
+                self.resource_locations.insert(resource, Vec::new());
+            }
 
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
@@ -111,7 +116,7 @@ impl State for Board {
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
                 if let EnvItem::Resource(resource) = patch.env_item {
-                    let v = self.resource_locations.get_mut(&resource).expect("Resource HashMaps initialised in init");
+                    let v = self.resource_locations.get_mut(&resource).expect("HashMap initialised for all resource types");
                     v.push(pos.to_owned());
                 }
                 id += 1;

@@ -3,6 +3,7 @@ use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
+use strum_macros::EnumIter;
 
 use crate::config::{FOOD_ABUNDANCE, WATER_ABUNDANCE};
 
@@ -28,7 +29,7 @@ impl Distribution<EnvItem> for Standard {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, EnumIter)]
 pub enum Resource {
     Food,
     Water,
