@@ -1,6 +1,5 @@
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
-use super::history::History;
 use super::inventory::Inventory;
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,

@@ -1,6 +1,6 @@
 #[derive(Debug, Clone)]
 pub struct Reward {
-    val: i32,
+    pub val: i32,
 }
 
 impl Reward {
