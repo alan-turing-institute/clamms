@@ -16,14 +16,25 @@ mod visualization;
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     use crate::model::board::Board;
+    use krabmaga::engine::{schedule::Schedule, state::State};
 
     let step = 100;
     let num_agents = 4;
     let dim: (u16, u16) = (10, 10);
 
-    let state = Board::new(dim, num_agents);
+    let mut state = Board::new(dim, num_agents);
 
-    simulate!(state, step, 10, false);
+    // Use simulate
+    // simulate!(state, step, 10, false);
+
+    // Use scheduler and run directly once
+    let mut schedule: Schedule = Schedule::new();
+    let state = state.as_state_mut();
+    state.init(&mut schedule);
+    for i in 0..step {
+        println!("Step: {i}");
+        schedule.step(state);
+    }
 }
 
 // Main used when a visualization feature is applied.
