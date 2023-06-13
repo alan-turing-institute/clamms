@@ -92,16 +92,9 @@ impl Agent for Forager {
         self.consume(&Resource::Food, FOOD_CONSUME_RATE);
         self.consume(&Resource::Water, WATER_CONSUME_RATE);
 
-        if self.pos.x > state.dim.0.into() {
-            self.pos.x = state.dim.0.into()
-        } else if self.pos.x < 1 {
-            self.pos.x = 1
-        }
-        if self.pos.y > state.dim.1.into() {
-            self.pos.y = state.dim.1.into()
-        } else if self.pos.y < 1 {
-            self.pos.y = 1
-        }
+        // Clamp positions to be 1 <= pos < dim
+        self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
+        self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
 
         state.agent_grid.set_object_location(
             *self,

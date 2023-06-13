@@ -1026,7 +1026,9 @@ name = "clamms"
 version = "0.1.0"
 dependencies = [
  "krabmaga",
+ "lazy_static",
  "rand",
+ "toml",
 ]
 
 [[package]]

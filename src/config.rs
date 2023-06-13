@@ -18,6 +18,8 @@ pub const WATER_CONSUME_RATE: u32 = 1;
 pub const FOOD_MAX_INVENTORY: i32 = 100;
 pub const WATER_MAX_INVENTORY: i32 = 100;
 
+// TODO: add optional rng seed
+
 // pub struct Config {
 //     sim_init: SimInit
 // }

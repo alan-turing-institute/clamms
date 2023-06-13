@@ -23,7 +23,7 @@ fn main() {
 
     let state = Board::new(dim, num_agents);
 
-    simulate!(state, step, 10);
+    simulate!(state, step, 10, false);
 }
 
 // Main used when a visualization feature is applied.

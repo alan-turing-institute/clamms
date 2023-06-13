@@ -71,8 +71,8 @@ impl State for Board {
         let mut rng = rand::thread_rng();
 
         for n in 0..self.num_agents {
-            let x: u16 = rng.gen_range(1..=self.dim.0);
-            let y: u16 = rng.gen_range(1..=self.dim.1);
+            let x: u16 = rng.gen_range(1..self.dim.0);
+            let y: u16 = rng.gen_range(1..self.dim.1);
 
             let id: u32 = n.into();
 
@@ -91,8 +91,8 @@ impl State for Board {
         }
 
         let mut id = 0;
-        for i in 1..=self.dim.0 {
-            for j in 1..=self.dim.1 {
+        for i in 0..self.dim.0 {
+            for j in 0..self.dim.1 {
                 let pos = Int2D {
                     x: i.into(),
                     y: j.into(),

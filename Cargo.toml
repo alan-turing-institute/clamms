@@ -11,7 +11,8 @@ edition = "2021"
 [dependencies]
 krabmaga = "0.3.*"
 rand = "0.8.5"
-
+lazy_static = "*"
+toml = "*"
 [features]
 visualization = ["krabmaga/visualization"]
 visualization_wasm = ["krabmaga/visualization_wasm"]
