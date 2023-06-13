@@ -6,6 +6,8 @@ use rand::{
 
 use crate::config::{FOOD_ABUNDANCE, WATER_ABUNDANCE};
 
+use super::board::Patch;
+
 #[derive(Clone, Copy, Debug)]
 pub enum EnvItem {
     Land,
@@ -38,5 +40,9 @@ impl Resource {
             Resource::Food => "tree".to_string(),
             Resource::Water => "water".to_string(),
         }
+    }
+
+    pub fn to_patch(self, id: u32) -> Patch {
+        Patch{ id, env_item: EnvItem::Resource(self) }
     }
 }

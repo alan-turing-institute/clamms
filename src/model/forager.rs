@@ -4,6 +4,7 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
+use super::routing::{Router, move_towards, Position};
 use super::policy::Policy;
 use super::reward::Reward;
 use crate::config::{
@@ -26,24 +27,24 @@ pub struct Forager {
     water: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 /// Direction of movement.
 pub enum Direction {
     North,
     East,
     South,
     West,
-    Stationary,
+    // Stationary,
 }
 
 impl Distribution<Direction> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> Direction {
-        match rng.gen_range(0..=4) {
+        match rng.gen_range(0..=3) {
             0 => Direction::North,
             1 => Direction::East,
             2 => Direction::South,
-            3 => Direction::West,
-            _ => Direction::Stationary,
+            _ => Direction::West,
+            // _ => Direction::Stationary,
         }
     }
 }
@@ -114,7 +115,6 @@ impl Agent for Forager {
                 Direction::East => self.pos.x += 1,
                 Direction::South => self.pos.y -= 1,
                 Direction::West => self.pos.x -= 1,
-                Direction::Stationary => (),
             }
 
             // update agent position (executing action)
@@ -143,7 +143,7 @@ impl Agent for Forager {
                 self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
             }
         }
-
+      
         // push (s_n, a_n, r_n+1) to history
         state
             .agent_histories
@@ -157,13 +157,34 @@ impl Agent for Forager {
     }
 }
 
-impl Location2D<Int2D> for Forager {
-    fn get_location(self) -> Int2D {
-        self.pos
-    }
+// impl Location2D<Int2D> for Forager {
+//     fn get_location(self) -> Int2D {
+//         self.pos
+//     }
 
-    fn set_location(&mut self, pos: Int2D) {
-        self.pos = pos;
+//     fn set_location(&mut self, pos: Int2D) {
+//         self.pos = pos;
+//     }
+// }
+
+impl Position for Forager {
+    fn get_position(&self) -> Int2D {
+        self.pos.to_owned()
+    }
+}
+
+impl Router for Forager {
+
+    fn try_move_towards(&self, resource: &Resource, state: &dyn State) -> Option<Direction> {
+        match &self.find_nearest(resource, state, None) {
+            None => rand::random(),
+            Some(pos) => {
+                if pos.eq(&self.get_position()) {
+                    return None
+                }
+                move_towards(&self.get_position(), &pos)
+            }
+        }
     }
 }
 
