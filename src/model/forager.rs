@@ -12,6 +12,7 @@ use crate::config::{
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
 };
 use krabmaga::engine::fields::field_2d::Location2D;
+use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
     distributions::{Distribution, Standard},
