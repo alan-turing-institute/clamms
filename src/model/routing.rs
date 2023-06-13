@@ -13,12 +13,9 @@ pub trait Router : Position {
     /// Finds the coordinates of the nearest specified resource.
     fn find_nearest(&self, resource: &Resource, state: &dyn State, horizon: Option<f32>) -> Option<Int2D> {
         
-        // TODO: use horizon
-
         let state = state.as_any().downcast_ref::<Board>().unwrap();
         let agent_pos = &self.get_position();
         let mut nearest: Option<Int2D> = None;
-        // let mut best_dist: u32 = (state.dim.0 * state.dim.1) as u32;
         let mut id: u32 = 0;
         while let Some(resource_pos) = state.resource_grid.get_location(&resource.to_patch(id) ) {
             if let Some(h) = horizon {

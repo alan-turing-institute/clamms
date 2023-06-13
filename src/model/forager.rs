@@ -132,11 +132,10 @@ impl Position for Forager {
 impl Router for Forager {
 
     fn try_move_towards(&self, resource: &Resource, state: &dyn State) -> Direction {
-        
-        // Find the coordinates of the nearest relevant resource.
-        let nearest_resource_pos = Int2D{ x: 0, y: 0};
-
-        move_towards(&self.get_position(), &nearest_resource_pos)
+        match &self.find_nearest(resource, state, None) {
+            None => rand::random(),
+            Some(pos) => move_towards(&self.get_position(), &pos)
+        }
     }
 }
 
