@@ -49,9 +49,38 @@ mod tests {
 
     #[test]
     fn test_move_towards() {
-        let pos = Int2D {x: 10, y: 10};
         let target = Int2D {x: 10, y: 10};
+
+        let pos = Int2D {x: 10, y: 10};
         assert_eq!(move_towards(&pos, &target), Direction::Stationary);
+
+        let pos = Int2D {x: 1, y: 10};
+        assert_eq!(move_towards(&pos, &target), Direction::East);
+
+        let pos = Int2D {x: 11, y: 10};
+        assert_eq!(move_towards(&pos, &target), Direction::West);
+
+        let pos = Int2D {x: 10, y: 5};
+        assert_eq!(move_towards(&pos, &target), Direction::North);
+
+        let pos = Int2D {x: 10, y: 12};
+        assert_eq!(move_towards(&pos, &target), Direction::South);
+        
+        let pos = Int2D {x: 4, y: 8};
+        let result = move_towards(&pos, &target);
+        assert!(result == Direction::North || result == Direction::East);
+
+        let pos = Int2D {x: 4, y: 20};
+        let result = move_towards(&pos, &target);
+        assert!(result == Direction::South || result == Direction::East);
+
+        let pos = Int2D {x: 14, y: 8};
+        let result = move_towards(&pos, &target);
+        assert!(result == Direction::North || result == Direction::West);
+
+        let pos = Int2D {x: 11, y: 18};
+        let result = move_towards(&pos, &target);
+        assert!(result == Direction::South || result == Direction::West);
     }
 
 
