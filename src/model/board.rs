@@ -1,6 +1,7 @@
-use crate::config::{INIT_FOOD, INIT_WATER};
-
+use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
+use crate::config::{INIT_FOOD, INIT_WATER};
+use hashbrown::HashMap;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -51,6 +52,7 @@ pub struct Board {
     pub agent_grid: SparseGrid2D<Forager>,
     pub dim: (u16, u16),
     pub num_agents: u8,
+    pub agent_histories: HashMap<u32, History>,
 }
 
 impl Board {
@@ -61,6 +63,7 @@ impl Board {
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
+            agent_histories: HashMap::new(),
         }
     }
 }

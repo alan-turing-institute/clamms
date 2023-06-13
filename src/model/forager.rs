@@ -1,18 +1,17 @@
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
+use super::history::History;
 use super::inventory::Inventory;
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
 };
 use krabmaga::engine::fields::field_2d::Location2D;
-use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
@@ -103,12 +102,6 @@ impl Agent for Forager {
                 y: self.pos.y,
             },
         );
-        if self.id == 0 {
-            println!(
-                "agent: {:?}, food: {:?}, water: {:?}",
-                self.id, self.food, self.water
-            );
-        }
     }
 }
 
