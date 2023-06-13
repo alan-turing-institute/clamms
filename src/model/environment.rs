@@ -1,4 +1,3 @@
-use rand::thread_rng;
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
@@ -16,7 +15,6 @@ pub enum EnvItem {
 
 impl Distribution<EnvItem> for Standard {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> EnvItem {
-        let mut rng = thread_rng();
         let pick: f32 = rng.gen();
         if pick < FOOD_ABUNDANCE {
             EnvItem::Resource(Resource::Food)

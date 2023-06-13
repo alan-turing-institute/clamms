@@ -11,7 +11,6 @@ use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
 };
-use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
@@ -187,14 +186,16 @@ impl Position for Forager {
 }
 
 impl Router for Forager {
-    fn try_move_towards(&self, resource: &Resource, state: &dyn State) -> Option<Direction> {
+    fn try_move_towards(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction> {
+        // Downcast to get access to rng
+        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
         match &self.find_nearest(resource, state, None) {
             None => rand::random(),
             Some(pos) => {
                 if pos.eq(&self.get_position()) {
                     return None;
                 }
-                move_towards(&self.get_position(), &pos)
+                move_towards(&self.get_position(), pos, &mut state.rng)
             }
         }
     }

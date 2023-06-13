@@ -18,11 +18,12 @@ fn main() {
     use crate::model::board::Board;
     use krabmaga::engine::{schedule::Schedule, state::State};
 
+    let seed = 0;
     let step = 100;
     let num_agents = 4;
     let dim: (u16, u16) = (10, 10);
 
-    let mut board = Board::new(dim, num_agents);
+    let mut board = Board::new_with_seed(dim, num_agents, seed);
 
     // Use simulate
     // simulate!(state, step, 10, false);

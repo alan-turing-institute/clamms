@@ -4,10 +4,11 @@ use crate::model::forager::Direction;
 use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
+use rand::rngs::StdRng;
 
 pub trait Router: Position {
     /// Gets an appropriate direction of movement towards a specified resource.
-    fn try_move_towards(&self, resource: &Resource, state: &dyn State) -> Option<Direction>;
+    fn try_move_towards(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction>;
 
     /// Finds the coordinates of the nearest specified resource.
     fn find_nearest(
@@ -67,9 +68,9 @@ pub trait Position {
     fn get_position(&self) -> Int2D;
 }
 
-fn coin_flip() -> bool {
+fn coin_flip(rng: &mut StdRng) -> bool {
     let d = Bernoulli::new(0.5).unwrap();
-    d.sample(&mut rand::thread_rng())
+    d.sample(rng)
 }
 
 /// Computes the number of steps to move from a to b.
@@ -83,7 +84,7 @@ fn sight_distance(a: &Int2D, b: &Int2D) -> f32 {
 }
 
 /// Decides an appropriate direction to move towards a target.
-pub fn move_towards(pos: &Int2D, target: &Int2D) -> Option<Direction> {
+pub fn move_towards(pos: &Int2D, target: &Int2D, rng: &mut StdRng) -> Option<Direction> {
     if pos.eq(target) {
         return None;
     }
@@ -93,14 +94,14 @@ pub fn move_towards(pos: &Int2D, target: &Int2D) -> Option<Direction> {
         }
         if pos.y < target.y {
             // flip coin for East or North
-            if coin_flip() {
+            if coin_flip(rng) {
                 return Some(Direction::East);
             } else {
                 return Some(Direction::North);
             }
         } else {
             // flip coin for East or South
-            if coin_flip() {
+            if coin_flip(rng) {
                 return Some(Direction::East);
             } else {
                 return Some(Direction::South);
@@ -113,14 +114,14 @@ pub fn move_towards(pos: &Int2D, target: &Int2D) -> Option<Direction> {
         }
         if pos.y < target.y {
             // flip coin for West or North
-            if coin_flip() {
+            if coin_flip(rng) {
                 return Some(Direction::West);
             } else {
                 return Some(Direction::North);
             }
         } else {
             // flip coin for West or South
-            if coin_flip() {
+            if coin_flip(rng) {
                 return Some(Direction::West);
             } else {
                 return Some(Direction::South);
@@ -135,41 +136,50 @@ pub fn move_towards(pos: &Int2D, target: &Int2D) -> Option<Direction> {
 
 #[cfg(test)]
 mod tests {
+    use rand::SeedableRng;
+
     use super::*;
 
     #[test]
     fn test_move_towards() {
+        let mut rng = StdRng::from_entropy();
         let target = Int2D { x: 10, y: 10 };
 
         let pos = Int2D { x: 10, y: 10 };
-        assert_eq!(move_towards(&pos, &target), None);
+        assert_eq!(move_towards(&pos, &target, &mut rng), None);
 
         let pos = Int2D { x: 1, y: 10 };
-        assert_eq!(move_towards(&pos, &target), Some(Direction::East));
+        assert_eq!(move_towards(&pos, &target, &mut rng), Some(Direction::East));
 
         let pos = Int2D { x: 11, y: 10 };
-        assert_eq!(move_towards(&pos, &target), Some(Direction::West));
+        assert_eq!(move_towards(&pos, &target, &mut rng), Some(Direction::West));
 
         let pos = Int2D { x: 10, y: 5 };
-        assert_eq!(move_towards(&pos, &target), Some(Direction::North));
+        assert_eq!(
+            move_towards(&pos, &target, &mut rng),
+            Some(Direction::North)
+        );
 
         let pos = Int2D { x: 10, y: 12 };
-        assert_eq!(move_towards(&pos, &target), Some(Direction::South));
+        assert_eq!(
+            move_towards(&pos, &target, &mut rng),
+            Some(Direction::South)
+        );
 
         let pos = Int2D { x: 4, y: 8 };
-        let result = move_towards(&pos, &target);
+        let result = move_towards(&pos, &target, &mut rng);
         assert!(result == Some(Direction::North) || result == Some(Direction::East));
 
         let pos = Int2D { x: 4, y: 20 };
-        let result = move_towards(&pos, &target);
+        let result = move_towards(&pos, &target, &mut rng);
         assert!(result == Some(Direction::South) || result == Some(Direction::East));
 
         let pos = Int2D { x: 14, y: 8 };
-        let result = move_towards(&pos, &target);
+        let result = move_towards(&pos, &target, &mut rng);
         assert!(result == Some(Direction::North) || result == Some(Direction::West));
 
         let pos = Int2D { x: 11, y: 18 };
-        let result = move_towards(&pos, &target);
+        let result = move_towards(&pos, &target, &mut rng);
         assert!(result == Some(Direction::South) || result == Some(Direction::West));
     }
 }
