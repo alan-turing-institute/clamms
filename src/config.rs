@@ -2,9 +2,12 @@
 
 //! Core configuration types and utilities.
 use lazy_static::lazy_static;
+// use rand::Error;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use toml;
+use regex::Regex;
+
 
 /// Environment variable name for CLAMMS config file.
 const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
@@ -13,12 +16,13 @@ lazy_static! {
     /// Lazy static reference to core configuration loaded from `clamms_config.toml`.
     pub static ref CORE_CONFIG: Config = parse_toml(
         &fs::read_to_string(std::env::var(CLAMMS_CONFIG).unwrap().as_str())
-        .expect("Error reading clamms_config.toml"));
+        .expect(format!("Unable to find the file {}. Please check the path is correct and this file exists", CLAMMS_CONFIG).as_str()))
+        .expect(format!("Unable to read the file {}. Please check the contents of this file.", CLAMMS_CONFIG).as_str());
 }
 
 /// Parses and returns core configuration.
-fn parse_toml(toml_str: &str) -> Config {
-    toml::from_str::<Config>(toml_str).expect("Error parsing clamms_config.toml")
+fn parse_toml(toml_str: &str) -> Result<Config, toml::de::Error> {
+    toml::from_str::<Config>(toml_str)
 }
 
 /// Gets `clamms-core` configuration variables.
@@ -67,12 +71,65 @@ mod tests {
     fn test_deserialize() {
         let config_string = r##"
         [world]
-        random_seed = 123;
+        RANDOM_SEED = 123
+        
+        FOOD_ABUNDANCE = 0.1
+        WATER_ABUNDANCE = 0.1
+        TREE_PROB = 0.1
+        SWEET_PROB = 0.01
+        
+        [agent]
+        INIT_FOOD = 0
+        INIT_WATER = 0
+        FOOD_ACQUIRE_RATE = 1
+        WATER_ACQUIRE_RATE = 1
+        FOOD_CONSUME_RATE = 1
+        WATER_CONSUME_RATE = 1
+        FOOD_MAX_INVENTORY = 456
+        WATER_MAX_INVENTORY = 1
         "##;
 
-        let config: Config = parse_toml(config_string);
+        let config: Config = parse_toml(config_string).unwrap();
         println!("config fixture {:?}", config.world);
 
         assert_eq!(config.world.RANDOM_SEED, 123);
+        assert_eq!(config.agent.FOOD_MAX_INVENTORY, 456);
+    }
+
+    #[test]
+    fn test_malformed_config() {
+        let config_missing_params = r##"
+        [world]
+        RANDOM_SEED = 123
+
+        [agent]
+        FOOD_MAX_INVENTORY = 456
+        "##;
+
+        let config_extras_params = r##"
+        [foo]
+        bar = 123
+        "##;
+
+        lazy_static!{
+            static ref RE: Regex = Regex::new(r"missing field").unwrap();
+        }
+
+        for config_string in [config_missing_params, config_extras_params] {
+            let actual = parse_toml(config_string);
+            assert!(actual.is_err());
+            assert!(!actual.is_ok());
+            let actual_msg = actual.unwrap_err().to_string();
+            println!("test_malformed_config:actual_msg = {actual_msg}");
+            assert!(RE.is_match(actual_msg.as_str()));
+        }
+    }
+
+    #[test]
+    fn test_missing_config() {
+        // CORE_CONFIG
+        // let actual_msg = actual.unwrap_err().to_string();
+        // let re = Regex::new(r"Please check the contents of this file").unwrap();
+        // assert!(re.is_match(actual_msg.as_str()));
     }
 }
