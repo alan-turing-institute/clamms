@@ -51,7 +51,7 @@ fn step_distance(a: &Int2D, b: &Int2D) -> u32 {
     ((a.x - b.x).abs() + (a.y - b.y).abs()).try_into().unwrap()
 }
 
-/// Computes the number of steps to move from a to b.
+/// Computes the straight line distance from a to b.
 fn sight_distance(a: &Int2D, b: &Int2D) -> f32 {
     f32::sqrt(((a.x - b.x)^2 + (a.y - b.y)^2) as f32)
 }
