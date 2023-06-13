@@ -1,6 +1,7 @@
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::inventory::Inventory;
+use super::routing::{Router, move_towards, Position};
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
@@ -112,13 +113,30 @@ impl Agent for Forager {
     }
 }
 
-impl Location2D<Int2D> for Forager {
-    fn get_location(self) -> Int2D {
-        self.pos
-    }
+// impl Location2D<Int2D> for Forager {
+//     fn get_location(self) -> Int2D {
+//         self.pos
+//     }
 
-    fn set_location(&mut self, pos: Int2D) {
-        self.pos = pos;
+//     fn set_location(&mut self, pos: Int2D) {
+//         self.pos = pos;
+//     }
+// }
+
+impl Position for Forager {
+    fn get_position(&self) -> Int2D {
+        self.pos.to_owned()
+    }
+}
+
+impl Router for Forager {
+
+    fn try_move_towards(&self, resource: &Resource, state: &dyn State) -> Direction {
+        
+        // Find the coordinates of the nearest relevant resource.
+        let nearest_resource_pos = Int2D{ x: 0, y: 0};
+
+        move_towards(&self.get_position(), &nearest_resource_pos)
     }
 }
 
