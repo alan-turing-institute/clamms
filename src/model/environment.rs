@@ -1,5 +1,3 @@
-use std::path::Display;
-
 use rand::thread_rng;
 use rand::{
     distributions::{Distribution, Standard},

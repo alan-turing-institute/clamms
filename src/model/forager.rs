@@ -1,19 +1,22 @@
+use super::action::Action;
+use super::agent_state::AgentState;
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
+use super::history::SAR;
 use super::inventory::Inventory;
 use super::routing::{Router, move_towards, Position};
+use super::policy::Policy;
+use super::reward::Reward;
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
 };
 use krabmaga::engine::fields::field_2d::Location2D;
-use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
@@ -69,9 +72,69 @@ impl Inventory for Forager {
     // }
 }
 
+impl Policy for Forager {
+    fn chose_action(&self, agent_state: &AgentState) -> Action {
+        if agent_state.food < agent_state.water {
+            Action::ToFood
+        } else {
+            Action::ToWater
+        }
+    }
+}
+
 impl Agent for Forager {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
-        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        // now downcasting to a mutable reference
+        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+
+        // observe current agent state
+        let agent_state = AgentState {
+            food: self.food,
+            water: self.water,
+            // TODO: placeholder waiting for routing work
+            food_dist: 0,
+            water_dist: 0,
+            last_action: state
+                .agent_histories
+                .get(&self.id)
+                .expect("HashMap initialised for all agents")
+                .last_action(),
+        };
+
+        // select action from policy
+        let action = self.chose_action(&agent_state);
+
+        // route agent based on action
+        if let Action::Stationary = action {
+            // do nothing
+        } else {
+            // randonly pick until routing is implemented
+            let dir: Direction = rand::random();
+            match dir {
+                Direction::North => self.pos.y += 1,
+                Direction::East => self.pos.x += 1,
+                Direction::South => self.pos.y -= 1,
+                Direction::West => self.pos.x -= 1,
+            }
+
+            // update agent position (executing action)
+            // Clamp positions to be 1 <= pos < dim
+            self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
+            self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
+            state.agent_grid.set_object_location(
+                *self,
+                &Int2D {
+                    x: self.pos.x,
+                    y: self.pos.y,
+                },
+            );
+        }
+
+        // resources depleted automatically after taking an action (even if Action::Stationary)
+        self.consume(&Resource::Food, FOOD_CONSUME_RATE);
+        self.consume(&Resource::Water, WATER_CONSUME_RATE);
+
+        // if now on a resource, gather the resource
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
             EnvItem::Land => {}
@@ -80,35 +143,17 @@ impl Agent for Forager {
                 self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
             }
         }
-
-        let dir: Direction = rand::random();
-        match dir {
-            Direction::North => self.pos.y += 1,
-            Direction::East => self.pos.x += 1,
-            Direction::South => self.pos.y -= 1,
-            Direction::West => self.pos.x -= 1,
-        }
-
-        self.consume(&Resource::Food, FOOD_CONSUME_RATE);
-        self.consume(&Resource::Water, WATER_CONSUME_RATE);
-
-        // Clamp positions to be 1 <= pos < dim
-        self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
-        self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
-
-        state.agent_grid.set_object_location(
-            *self,
-            &Int2D {
-                x: self.pos.x,
-                y: self.pos.y,
-            },
-        );
-        if self.id == 0 {
-            println!(
-                "agent: {:?}, food: {:?}, water: {:?}",
-                self.id, self.food, self.water
-            );
-        }
+      
+        // push (s_n, a_n, r_n+1) to history
+        state
+            .agent_histories
+            .get_mut(&self.id)
+            .expect("HashMap initialised for all agents")
+            .push(SAR::new(
+                agent_state,
+                action,
+                Reward::from_inv_count_linear(self.food, self.water),
+            ))
     }
 }
 
