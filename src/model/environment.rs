@@ -28,7 +28,7 @@ impl Distribution<EnvItem> for Standard {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Resource {
     Food,
     Water,

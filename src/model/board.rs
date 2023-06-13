@@ -1,7 +1,9 @@
+use super::environment::Resource;
 use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
 use crate::config::{INIT_FOOD, INIT_WATER};
-use hashbrown::HashMap;
+use krabmaga::HashMap;
+// use hashbrown::HashMap;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -53,6 +55,7 @@ pub struct Board {
     pub dim: (u16, u16),
     pub num_agents: u8,
     pub agent_histories: HashMap<u32, History>,
+    pub resource_locations: HashMap<Resource, Vec<Int2D>>,
 }
 
 impl Board {
@@ -64,6 +67,7 @@ impl Board {
             dim,
             num_agents,
             agent_histories: HashMap::new(),
+            resource_locations: HashMap::new(),
         }
     }
 }
@@ -106,6 +110,10 @@ impl State for Board {
                 let item: EnvItem = rand::random();
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
+                if let EnvItem::Resource(resource) = patch.env_item {
+                    let v = self.resource_locations.get_mut(&resource).expect("Resource HashMaps initialised in init");
+                    v.push(pos.to_owned());
+                }
                 id += 1;
             }
         }
