@@ -4,9 +4,9 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
-use super::routing::{Router, move_towards, Position};
 use super::policy::Policy;
 use super::reward::Reward;
+use super::routing::{move_towards, Position, Router};
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
@@ -106,18 +106,18 @@ impl Agent for Forager {
         let action = self.chose_action(&agent_state);
 
         // route agent based on action
-        if let Action::Stationary = action {
-            // do nothing
-        } else {
-            // randonly pick until routing is implemented
-            let dir: Direction = rand::random();
+        let route = match action {
+            Action::ToFood => self.try_move_towards(&Resource::Food, state),
+            Action::ToWater => self.try_move_towards(&Resource::Water, state),
+            Action::Stationary => None,
+        };
+        if let Some(dir) = route {
             match dir {
                 Direction::North => self.pos.y += 1,
                 Direction::East => self.pos.x += 1,
                 Direction::South => self.pos.y -= 1,
                 Direction::West => self.pos.x -= 1,
             }
-
             // update agent position (executing action)
             // Clamp positions to be 1 <= pos < dim
             self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
@@ -144,7 +144,7 @@ impl Agent for Forager {
                 self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
             }
         }
-      
+
         // push (s_n, a_n, r_n+1) to history
         state
             .agent_histories
@@ -152,9 +152,20 @@ impl Agent for Forager {
             .expect("HashMap initialised for all agents")
             .push(SAR::new(
                 agent_state,
-                action,
+                action.clone(),
                 Reward::from_inv_count_linear(self.food, self.water),
-            ))
+            ));
+
+        if self.id == 0 {
+            println!(
+                "agent: {:?}, food: {:?}, water: {:?}, act: {:?}, pos: {}",
+                self.id,
+                self.food,
+                self.water,
+                action,
+                self.get_position()
+            );
+        }
     }
 }
 
@@ -175,13 +186,12 @@ impl Position for Forager {
 }
 
 impl Router for Forager {
-
     fn try_move_towards(&self, resource: &Resource, state: &dyn State) -> Option<Direction> {
         match &self.find_nearest(resource, state, None) {
             None => rand::random(),
             Some(pos) => {
                 if pos.eq(&self.get_position()) {
-                    return None
+                    return None;
                 }
                 move_towards(&self.get_position(), &pos)
             }

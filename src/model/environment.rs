@@ -43,6 +43,9 @@ impl Resource {
     }
 
     pub fn to_patch(self, id: u32) -> Patch {
-        Patch{ id, env_item: EnvItem::Resource(self) }
+        Patch {
+            id,
+            env_item: EnvItem::Resource(self),
+        }
     }
 }
