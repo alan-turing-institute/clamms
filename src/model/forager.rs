@@ -4,6 +4,7 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
+use super::policy::Policy;
 use super::reward::Reward;
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
@@ -70,13 +71,22 @@ impl Inventory for Forager {
     // }
 }
 
+impl Policy for Forager {
+    fn chose_action(&self, agent_state: &AgentState) -> Action {
+        if agent_state.food < agent_state.water {
+            Action::ToFood
+        } else {
+            Action::ToWater
+        }
+    }
+}
+
 impl Agent for Forager {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
         // now downcasting to a mutable reference
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
-        let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
 
-        // record current agent state
+        // observe current agent state
         let agent_state = AgentState {
             food: self.food,
             water: self.water,
@@ -90,6 +100,42 @@ impl Agent for Forager {
                 .last_action(),
         };
 
+        // select action from policy
+        let action = self.chose_action(&agent_state);
+
+        // route agent based on action
+        if let Action::Stationary = action {
+            // do nothing
+        } else {
+            // randonly pick until routing is implemented
+            let dir: Direction = rand::random();
+            match dir {
+                Direction::North => self.pos.y += 1,
+                Direction::East => self.pos.x += 1,
+                Direction::South => self.pos.y -= 1,
+                Direction::West => self.pos.x -= 1,
+                Direction::Stationary => (),
+            }
+
+            // update agent position (executing action)
+            // Clamp positions to be 1 <= pos < dim
+            self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
+            self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
+            state.agent_grid.set_object_location(
+                *self,
+                &Int2D {
+                    x: self.pos.x,
+                    y: self.pos.y,
+                },
+            );
+        }
+
+        // resources depleted automatically after taking an action (even if Action::Stationary)
+        self.consume(&Resource::Food, FOOD_CONSUME_RATE);
+        self.consume(&Resource::Water, WATER_CONSUME_RATE);
+
+        // if now on a resource, gather the resource
+        let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
             EnvItem::Land => {}
             EnvItem::Resource(Resource::Food) => self.acquire(&Resource::Food, FOOD_ACQUIRE_RATE),
@@ -97,34 +143,6 @@ impl Agent for Forager {
                 self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
             }
         }
-
-        // select action from policy
-        let action = Action::ToFood;
-
-        let dir: Direction = rand::random();
-        match dir {
-            Direction::North => self.pos.y += 1,
-            Direction::East => self.pos.x += 1,
-            Direction::South => self.pos.y -= 1,
-            Direction::West => self.pos.x -= 1,
-            Direction::Stationary => (),
-        }
-
-        // inventory reduced at each time step
-        self.consume(&Resource::Food, FOOD_CONSUME_RATE);
-        self.consume(&Resource::Water, WATER_CONSUME_RATE);
-
-        // Clamp positions to be 1 <= pos < dim
-        self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
-        self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
-
-        state.agent_grid.set_object_location(
-            *self,
-            &Int2D {
-                x: self.pos.x,
-                y: self.pos.y,
-            },
-        );
 
         // push (s_n, a_n, r_n+1) to history
         state
