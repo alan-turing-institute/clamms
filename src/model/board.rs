@@ -89,6 +89,9 @@ impl State for Board {
                 INIT_WATER,
             );
 
+            // Init empty history
+            self.agent_histories.insert(id, History::new());
+
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
         }

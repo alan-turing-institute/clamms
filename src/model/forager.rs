@@ -1,6 +1,10 @@
+use super::action::Action;
+use super::agent_state::AgentState;
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
+use super::history::SAR;
 use super::inventory::Inventory;
+use super::reward::Reward;
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
@@ -68,8 +72,24 @@ impl Inventory for Forager {
 
 impl Agent for Forager {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
-        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        // now downcasting to a mutable reference
+        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
+
+        // record current agent state
+        let agent_state = AgentState {
+            food: self.food,
+            water: self.water,
+            // TODO: placeholder waiting for routing work
+            food_dist: 0,
+            water_dist: 0,
+            last_action: state
+                .agent_histories
+                .get(&self.id)
+                .expect("HashMap initialised for all agents")
+                .last_action(),
+        };
+
         match item {
             EnvItem::Land => {}
             EnvItem::Resource(Resource::Food) => self.acquire(&Resource::Food, FOOD_ACQUIRE_RATE),
@@ -77,6 +97,9 @@ impl Agent for Forager {
                 self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
             }
         }
+
+        // select action from policy
+        let action = Action::ToFood;
 
         let dir: Direction = rand::random();
         match dir {
@@ -87,6 +110,7 @@ impl Agent for Forager {
             Direction::Stationary => (),
         }
 
+        // inventory reduced at each time step
         self.consume(&Resource::Food, FOOD_CONSUME_RATE);
         self.consume(&Resource::Water, WATER_CONSUME_RATE);
 
@@ -101,6 +125,17 @@ impl Agent for Forager {
                 y: self.pos.y,
             },
         );
+
+        // push (s_n, a_n, r_n+1) to history
+        state
+            .agent_histories
+            .get_mut(&self.id)
+            .expect("HashMap initialised for all agents")
+            .push(SAR::new(
+                agent_state,
+                action,
+                Reward::from_inv_count_linear(self.food, self.water),
+            ))
     }
 }
 
