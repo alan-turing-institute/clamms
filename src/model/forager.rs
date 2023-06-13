@@ -118,18 +118,19 @@ impl Agent for Forager {
                 Direction::South => self.pos.y -= 1,
                 Direction::West => self.pos.x -= 1,
             }
-            // update agent position (executing action)
             // Clamp positions to be 1 <= pos < dim
             self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
             self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
-            state.agent_grid.set_object_location(
-                *self,
-                &Int2D {
-                    x: self.pos.x,
-                    y: self.pos.y,
-                },
-            );
         }
+
+        // update agent position (executing action)
+        state.agent_grid.set_object_location(
+            *self,
+            &Int2D {
+                x: self.pos.x,
+                y: self.pos.y,
+            },
+        );
 
         // resources depleted automatically after taking an action (even if Action::Stationary)
         self.consume(&Resource::Food, FOOD_CONSUME_RATE);

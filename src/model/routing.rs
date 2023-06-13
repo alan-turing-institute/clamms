@@ -2,8 +2,7 @@ use super::board::{Board, Patch};
 use super::environment::Resource;
 use crate::model::forager::Direction;
 use krabmaga::cfg_if::cfg_if;
-use krabmaga::engine::fields::field_2d::Location2D;
-use krabmaga::engine::{agent::Agent, location::Int2D, state::State};
+use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
 
 pub trait Router: Position {
