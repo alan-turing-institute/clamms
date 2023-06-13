@@ -23,7 +23,7 @@ pub struct Forager {
     water: i32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 /// Direction of movement.
 pub enum Direction {
     North,
