@@ -1,13 +1,14 @@
 use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
 use crate::config::{INIT_FOOD, INIT_WATER};
-use hashbrown::HashMap;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
     fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
 };
+use krabmaga::HashMap;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy, Debug)]
