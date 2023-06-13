@@ -7,7 +7,7 @@ use std::fs;
 use toml;
 
 /// Environment variable name for CLAMMS config file.
-pub const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
+const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
 
 lazy_static! {
     /// Lazy static reference to core configuration loaded from `clamms_config.toml`.

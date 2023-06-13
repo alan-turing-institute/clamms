@@ -2,7 +2,7 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::inventory::Inventory;
 
-use crate::config::CORE_CONFIG;
+use crate::config::core_config;
 // use crate::config::{
 //     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
 //     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
@@ -61,8 +61,8 @@ impl Inventory for Forager {
             Resource::Food => self.food += quantity,
             Resource::Water => self.water += quantity,
         }
-        self.food = self.food.min(CORE_CONFIG.agent.FOOD_MAX_INVENTORY);
-        self.water = self.water.min(CORE_CONFIG.agent.WATER_MAX_INVENTORY);
+        self.food = self.food.min(core_config().agent.FOOD_MAX_INVENTORY);
+        self.water = self.water.min(core_config().agent.WATER_MAX_INVENTORY);
     }
 
     // fn consume(&mut self, resource: &Resource, quantity: i32) {
@@ -77,10 +77,10 @@ impl Agent for Forager {
         match item {
             EnvItem::Land => {}
             EnvItem::Resource(Resource::Food) => {
-                self.acquire(&Resource::Food, CORE_CONFIG.agent.FOOD_ACQUIRE_RATE)
+                self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
             }
             EnvItem::Resource(Resource::Water) => {
-                self.acquire(&Resource::Water, CORE_CONFIG.agent.WATER_ACQUIRE_RATE)
+                self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
             }
         }
 
@@ -93,8 +93,8 @@ impl Agent for Forager {
             Direction::Stationary => (),
         }
 
-        self.consume(&Resource::Food, CORE_CONFIG.agent.FOOD_CONSUME_RATE);
-        self.consume(&Resource::Water, CORE_CONFIG.agent.WATER_CONSUME_RATE);
+        self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);
+        self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
 
         // Clamp positions to be 1 <= pos < dim
         self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
