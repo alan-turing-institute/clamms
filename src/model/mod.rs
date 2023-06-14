@@ -8,3 +8,4 @@ pub mod inventory;
 pub mod policy;
 pub mod reward;
 pub mod routing;
+pub mod tabular_rl;

@@ -15,7 +15,9 @@ mod visualization;
 // Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
-    use crate::model::board::Board;
+    use crate::model::{
+        action::Action, agent_state::AgentState, board::Board, tabular_rl::SARSAModel,
+    };
     use krabmaga::engine::{schedule::Schedule, state::State};
 
     let seed = 0;
@@ -28,6 +30,9 @@ fn main() {
     // Use simulate
     // simulate!(state, step, 10, false);
 
+    // setup RL model
+    // let model = SARSAModel::new(AgentState.to_vec(), Action.to_vec());
+
     // Use scheduler and run directly once
     let mut schedule: Schedule = Schedule::new();
     let state = board.as_state_mut();
@@ -36,14 +41,15 @@ fn main() {
         println!("Step: {i}");
         schedule.step(state);
     }
+
     // Open output file and write history
-    let mut f = File::create("output.json").unwrap();
-    writeln!(
-        f,
-        "{}",
-        serde_json::to_string_pretty(&board.agent_histories).unwrap()
-    )
-    .unwrap();
+    // let mut f = File::create("output.json").unwrap();
+    // writeln!(
+    //     f,
+    //     "{}",
+    //     serde_json::to_string_pretty(&board.agent_histories).unwrap()
+    // )
+    // .unwrap();
 }
 
 // Main used when a visualization feature is applied.
