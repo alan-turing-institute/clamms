@@ -9,6 +9,7 @@ use toml;
 use regex::Regex;
 use std::path::Path;
 
+pub type ResourceAbundance = f32;
 
 /// Environment variable name for CLAMMS config file.
 const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
@@ -16,10 +17,6 @@ const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
 lazy_static! {
     /// Lazy static reference to core configuration loaded from `clamms_config.toml`.
     pub static ref CORE_CONFIG: Config = open_config_file(Path::new(std::env::var(CLAMMS_CONFIG).unwrap().as_str()));
-    // parse_toml(
-    //     &fs::read_to_string(std::env::var(CLAMMS_CONFIG).unwrap().as_str())
-    //     .expect(format!("Unable to find the file {}. Please check the path is correct and this file exists", CLAMMS_CONFIG).as_str()))
-    //     .expect(format!("Unable to read the file {}. Please check the contents of this file.", CLAMMS_CONFIG).as_str());
 }
 
 fn open_config_file(path: &Path) -> Config{

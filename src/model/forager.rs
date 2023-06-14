@@ -90,13 +90,13 @@ impl Agent for Forager {
             food: self.food,
             water: self.water,
             // TODO: placeholder waiting for routing work
-            food_dist: 0,
-            water_dist: 0,
-            last_action: state
-                .agent_histories
-                .get(&self.id)
-                .expect("HashMap initialised for all agents")
-                .last_action(),
+            // food_dist: 0,
+            // water_dist: 0,
+            // last_action: state
+            //     .agent_histories
+            //     .get(&self.id)
+            //     .expect("HashMap initialised for all agents")
+            //     .last_action(),
         };
 
         // select action from policy
