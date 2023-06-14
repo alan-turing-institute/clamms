@@ -1,11 +1,9 @@
+use crate::config::core_config;
 use rand::{
     distributions::{Distribution, Standard},
     Rng,
 };
 use strum_macros::EnumIter;
-
-// use crate::config::{CORE_CONFIG.world. FOOD_ABUNDANCE, WATER_ABUNDANCE};
-use crate::config::core_config;
 
 use super::board::Patch;
 

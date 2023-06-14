@@ -1,7 +1,6 @@
-use super::board::{Board, Patch};
+use super::board::Board;
 use super::environment::Resource;
 use crate::model::forager::Direction;
-use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;

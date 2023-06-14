@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::action::Action;
+use crate::config::core_config;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentState {
@@ -19,21 +19,21 @@ impl AgentState {
         let f: InvLevel;
         let w: InvLevel;
 
-        if self.food < 0 {
+        if self.food < core_config().agent.INVENTORY_LEVEL_CRITICAL_LOW {
             f = InvLevel::Critical
-        } else if self.food < 10 {
+        } else if self.food < core_config().agent.INVENTORY_LEVEL_LOW_MEDIUM {
             f = InvLevel::Low
-        } else if self.food < 50 {
+        } else if self.food < core_config().agent.INVENTORY_LEVEL_MEDIUM_HIGH {
             f = InvLevel::Medium
         } else {
             f = InvLevel::High
         }
 
-        if self.water < 0 {
+        if self.water < core_config().agent.INVENTORY_LEVEL_CRITICAL_LOW {
             w = InvLevel::Critical
-        } else if self.water < 10 {
+        } else if self.water < core_config().agent.INVENTORY_LEVEL_LOW_MEDIUM {
             w = InvLevel::Low
-        } else if self.water < 50 {
+        } else if self.water < core_config().agent.INVENTORY_LEVEL_MEDIUM_HIGH {
             w = InvLevel::Medium
         } else {
             w = InvLevel::High

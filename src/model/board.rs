@@ -5,9 +5,7 @@ use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
-use krabmaga::engine::{
-    fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
-};
+use krabmaga::engine::{location::Int2D, state::State};
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};

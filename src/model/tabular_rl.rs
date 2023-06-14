@@ -1,4 +1,6 @@
 use krabmaga::HashMap;
+
+use crate::config::core_config;
 pub struct SARSAModel<S, A>
 where
     S: std::cmp::Eq + std::hash::Hash + Clone,
@@ -16,7 +18,7 @@ where
         let mut q_tbl = HashMap::new();
         for s in states {
             for a in actions {
-                q_tbl.insert((s.to_owned(), a.to_owned()), 0.0);
+                q_tbl.insert((s.to_owned(), a.to_owned()), core_config().rl.INIT_Q_VALUES);
             }
         }
         SARSAModel { q_tbl }
