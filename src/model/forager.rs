@@ -4,13 +4,11 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
-use super::policy::Policy;
-use super::reward::Reward;
-use super::routing::{move_towards, Position, Router};
 use crate::config::{
     FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
     WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
 };
+use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
@@ -63,8 +61,8 @@ impl Inventory for Forager {
             Resource::Food => self.food += quantity,
             Resource::Water => self.water += quantity,
         }
-        self.food = self.food.min(FOOD_MAX_INVENTORY);
-        self.water = self.water.min(WATER_MAX_INVENTORY);
+        self.food = self.food.min(core_config().agent.FOOD_MAX_INVENTORY);
+        self.water = self.water.min(core_config().agent.WATER_MAX_INVENTORY);
     }
 
     // fn consume(&mut self, resource: &Resource, quantity: i32) {
@@ -139,9 +137,11 @@ impl Agent for Forager {
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
             EnvItem::Land => {}
-            EnvItem::Resource(Resource::Food) => self.acquire(&Resource::Food, FOOD_ACQUIRE_RATE),
+            EnvItem::Resource(Resource::Food) => {
+                self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
+            }
             EnvItem::Resource(Resource::Water) => {
-                self.acquire(&Resource::Water, WATER_ACQUIRE_RATE)
+                self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
             }
         }
 

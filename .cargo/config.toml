@@ -1,0 +1,3 @@
+[env]
+CARGO_WORKSPACE_DIR = { value = "", relative = true }
+CLAMMS_CONFIG = { value = "clamms-config.toml", relative = true}
