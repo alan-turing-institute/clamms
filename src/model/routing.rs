@@ -60,7 +60,7 @@ fn step_distance(a: &Int2D, b: &Int2D) -> u32 {
 
 /// Computes the straight line distance from a to b.
 fn sight_distance(a: &Int2D, b: &Int2D) -> f32 {
-    f32::sqrt(((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2) as f32)
+    f32::sqrt(((a.x - b.x).pow(2) + (a.y - b.y).pow(2)) as f32)
 }
 
 /// Decides an appropriate direction to move towards a target.
@@ -116,9 +116,16 @@ pub fn move_towards(pos: &Int2D, target: &Int2D, rng: &mut StdRng) -> Option<Dir
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use rand::SeedableRng;
 
-    use super::*;
+    #[test]
+    fn test_sight_dist() {
+        assert_eq!(
+            sight_distance(&Int2D { x: 0, y: 0 }, &Int2D { x: 4, y: 3 }),
+            5.
+        )
+    }
 
     #[test]
     fn test_move_towards() {
