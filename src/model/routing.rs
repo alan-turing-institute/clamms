@@ -17,15 +17,6 @@ pub trait Router: Position {
     /// Gets an appropriate direction of movement towards a specified resource.
     fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction>;
 
-    fn get_resource_locations(&self, resource: &Resource, state: &mut dyn State) -> Vec<Int2D> {
-        let state = state.as_any().downcast_ref::<Board>().unwrap();
-        state
-            .resource_locations
-            .get(resource)
-            .expect("HashMap initialised for all resource types")
-            .to_owned()
-    }
-    
     /// Finds the coordinates of the nearest specified resource.
     fn find_nearest(
         &self,
@@ -77,6 +68,15 @@ fn get_traders(state: &mut dyn State) -> Vec<Trader> {
             traders
         }    
     }
+}
+
+fn get_resource_locations(resource: &Resource, state: &mut dyn State) -> Vec<Int2D> {
+    let state = state.as_any().downcast_ref::<Board>().unwrap();
+    state
+        .resource_locations
+        .get(resource)
+        .expect("HashMap initialised for all resource types")
+        .to_owned()
 }
 
 fn get_trader_locations(state: &mut dyn State) -> Vec<Int2D>{
