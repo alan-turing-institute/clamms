@@ -18,6 +18,7 @@ toml = "*"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 regex = "1.8.4"
+tch = "0.13.0"
 
 [features]
 visualization = ["krabmaga/visualization"]
