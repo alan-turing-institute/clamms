@@ -1,7 +1,7 @@
 use super::{action::Action, agent_state::AgentState, reward::Reward};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct History {
     trajectory: Vec<SAR>,
 }
@@ -11,14 +11,6 @@ pub struct SAR {
     pub state: AgentState,
     pub action: Action,
     pub reward: Reward,
-}
-
-impl Default for History {
-    fn default() -> Self {
-        Self {
-            trajectory: Vec::new(),
-        }
-    }
 }
 
 impl History {
@@ -63,9 +55,7 @@ mod tests {
                 AgentState {
                     food: 0,
                     water: 0,
-                    food_dist: 5,
-                    water_dist: 10,
-                    last_action: None,
+                    // last_action: None,
                 },
                 Action::Stationary,
                 Reward { val: -1 },
@@ -80,9 +70,7 @@ mod tests {
             AgentState {
                 food: 0,
                 water: 0,
-                food_dist: 5,
-                water_dist: 10,
-                last_action: None,
+                // last_action: None,
             },
             Action::Stationary,
             Reward { val: -1 },
@@ -91,9 +79,7 @@ mod tests {
             AgentState {
                 food: 0,
                 water: 0,
-                food_dist: 5,
-                water_dist: 10,
-                last_action: None,
+                // last_action: None,
             },
             Action::Stationary,
             Reward { val: -2 },

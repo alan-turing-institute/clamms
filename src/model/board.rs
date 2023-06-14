@@ -10,6 +10,7 @@ use krabmaga::engine::{
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
+use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
 
@@ -52,12 +53,12 @@ impl PartialEq for Patch {
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
-    pub agent_grid: SparseGrid2D<Forager>,
+    pub agent_grid: DenseGrid2D<Forager>,
     pub dim: (u16, u16),
     pub num_agents: u8,
     pub agent_histories: HashMap<u32, History>,
     // TODO: consider refactor to BTreeMap if issues occur around deterministic iteration
-    pub resource_locations: HashMap<Resource, Vec<Int2D>>,
+    pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
     pub rng: StdRng,
 }
 
@@ -65,24 +66,24 @@ impl Board {
     pub fn new(dim: (u16, u16), num_agents: u8) -> Board {
         Board {
             step: 0,
-            agent_grid: SparseGrid2D::new(dim.0.into(), dim.0.into()),
+            agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
             agent_histories: HashMap::new(),
-            resource_locations: HashMap::new(),
+            resource_locations: BTreeMap::new(),
             rng: StdRng::from_entropy(),
         }
     }
     pub fn new_with_seed(dim: (u16, u16), num_agents: u8, seed: u64) -> Board {
         Board {
             step: 0,
-            agent_grid: SparseGrid2D::new(dim.0.into(), dim.0.into()),
+            agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
             agent_histories: HashMap::new(),
-            resource_locations: HashMap::new(),
+            resource_locations: BTreeMap::new(),
             rng: StdRng::seed_from_u64(seed),
         }
     }
@@ -169,6 +170,6 @@ impl State for Board {
     fn reset(&mut self) {
         self.step = 0;
         self.resource_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
-        self.agent_grid = SparseGrid2D::new(self.dim.0.into(), self.dim.1.into());
+        self.agent_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
     }
 }
