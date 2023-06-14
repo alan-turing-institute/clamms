@@ -8,8 +8,8 @@ use krabmaga::engine::{
     fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
 };
 use krabmaga::HashMap;
-use rand::Rng;
-use serde::{Deserialize, Serialize};
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
 
@@ -56,7 +56,9 @@ pub struct Board {
     pub dim: (u16, u16),
     pub num_agents: u8,
     pub agent_histories: HashMap<u32, History>,
+    // TODO: consider refactor to BTreeMap if issues occur around deterministic iteration
     pub resource_locations: HashMap<Resource, Vec<Int2D>>,
+    pub rng: StdRng,
 }
 
 impl Board {
@@ -69,6 +71,19 @@ impl Board {
             num_agents,
             agent_histories: HashMap::new(),
             resource_locations: HashMap::new(),
+            rng: StdRng::from_entropy(),
+        }
+    }
+    pub fn new_with_seed(dim: (u16, u16), num_agents: u8, seed: u64) -> Board {
+        Board {
+            step: 0,
+            agent_grid: SparseGrid2D::new(dim.0.into(), dim.0.into()),
+            resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
+            dim,
+            num_agents,
+            agent_histories: HashMap::new(),
+            resource_locations: HashMap::new(),
+            rng: StdRng::seed_from_u64(seed),
         }
     }
 }
@@ -76,11 +91,9 @@ impl Board {
 impl State for Board {
     fn init(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
         self.step = 0;
-        let mut rng = rand::thread_rng();
-
         for n in 0..self.num_agents {
-            let x: u16 = rng.gen_range(1..self.dim.0);
-            let y: u16 = rng.gen_range(1..self.dim.1);
+            let x: u16 = self.rng.gen_range(1..self.dim.0);
+            let y: u16 = self.rng.gen_range(1..self.dim.1);
 
             let id: u32 = n.into();
 
@@ -112,7 +125,7 @@ impl State for Board {
                     x: i.into(),
                     y: j.into(),
                 };
-                let item: EnvItem = rand::random();
+                let item: EnvItem = self.rng.gen();
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
                 if let EnvItem::Resource(resource) = patch.env_item {
