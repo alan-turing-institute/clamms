@@ -4,10 +4,10 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
-use crate::config::{
-    FOOD_ACQUIRE_RATE, FOOD_CONSUME_RATE, FOOD_MAX_INVENTORY, WATER_ACQUIRE_RATE,
-    WATER_CONSUME_RATE, WATER_MAX_INVENTORY,
-};
+use crate::config::core_config;
+use super::routing::{Router, Position, move_towards};
+use super::policy::Policy;
+use super::reward::Reward;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
@@ -130,8 +130,8 @@ impl Agent for Forager {
         );
 
         // resources depleted automatically after taking an action (even if Action::Stationary)
-        self.consume(&Resource::Food, FOOD_CONSUME_RATE);
-        self.consume(&Resource::Water, WATER_CONSUME_RATE);
+        self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);
+        self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
 
         // if now on a resource, gather the resource
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
