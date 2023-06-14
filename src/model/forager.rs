@@ -106,7 +106,7 @@ impl Agent for Forager {
         let route = match action {
             Action::ToFood => self.try_move_towards(&Resource::Food, state),
             Action::ToWater => self.try_move_towards(&Resource::Water, state),
-            Action::Stationary => None,
+            _ => None,
         };
         if let Some(dir) = route {
             match dir {

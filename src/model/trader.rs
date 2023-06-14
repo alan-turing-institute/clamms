@@ -20,7 +20,7 @@ impl Trader {
 
 // pub trait Trade {
 //     fn offer(&self, resource: Resource) -> u32;
-//     fn is_viable(&self, resource: Resource) -> u32;
+//     fn is_viable(&self, resource: Resource) -> bool;
 // }
 
 

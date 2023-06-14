@@ -4,5 +4,6 @@ use serde::{Deserialize, Serialize};
 pub enum Action {
     ToFood,
     ToWater,
+    ToAgent,
     Stationary,
 }
