@@ -6,7 +6,7 @@ use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;
-
+use super::trader::Trader;
 
 
 pub trait Router: Position {
@@ -23,15 +23,25 @@ pub trait Router: Position {
             .to_owned()
     }
     
-    // fn get_agent_locations(&self, state: &mut dyn State) -> Vec<Int2D>{
+
+    // fn get_traders(
+    //     &self,
+    //     state: &Box<&dyn State>,
+    //     // agent: &Trader
+    // ) -> Vec<Trader> {
+    //     let mut cur_id = 0;
+    //     let mut traders = Vec<Trader>::new();
     //     let state = state.as_any().downcast_ref::<Board>().unwrap();
-    //     let mut agent_locations: Vec<Int2D>;
-    //     for agent in state.forager_grid {
-    //             // iter_objects(closure) {
-    //         agent_locations.append(state.forager_grid.get_location(agent));
+    //     while let trader = state.trader_grid.get(&Trader::dummy(cur_id)) {
+    //         traders.push(trader);
     //     }
-    //     agent_locations
+
+        // match state.forager_grid.get(&Trader::dummy(agent.id())) {
+        //     Some(matching_agent) => Some(Box::new(matching_agent)),
+        //     None => None,
+        // }
     // }
+
 
     /// Finds the coordinates of the nearest specified resource.
     fn find_nearest(
@@ -65,6 +75,22 @@ pub trait Router: Position {
         }
         nearest
     }
+}
+
+fn get_traders(state: &mut dyn State) -> Vec<Trader> {
+    let state = state.as_any().downcast_ref::<Board>().unwrap();
+    let mut traders = Vec::new();
+    for ref_cell in state.trader_grid.locs.iter() {
+        for x in ref_cell.borrow().iter() {
+            traders.append(&mut x.clone());
+        }
+    }
+    traders
+    // state.trader_grid.locs.into_iter().into().into_iter().collect()
+}
+
+fn get_trader_locations(state: &mut dyn State) -> Vec<Int2D>{
+    get_traders(state).into_iter().map(|t| t.get_position()).collect()
 }
 
 pub trait Position {
@@ -139,7 +165,7 @@ pub fn move_towards(pos: &Int2D, target: &Int2D, rng: &mut StdRng) -> Option<Dir
 
 #[cfg(test)]
 mod tests {
-    use crate::{model::forager::Forager, config::core_config};
+    use crate::{model::{forager::Forager, trader::Trader}, config::core_config};
 
     use super::*;
     use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
@@ -196,26 +222,69 @@ mod tests {
         assert!(result == Some(Direction::South) || result == Some(Direction::West));
     }
 
+    #[test]
+    fn test_get_agent_locations() {
+        
+        let dim: (u16, u16) = (10, 10);
+        let trader_grid: DenseGrid2D<Trader> = DenseGrid2D::new(dim.0.into(), dim.0.into());
+        
+        let mut positions: Vec<Int2D> = Vec::new();
+        positions.push(Int2D { x: 4, y: 8 });
+        positions.push(Int2D { x: 1, y: 2 });
+        
+        let mut id_counter = 0;
+        for p in positions {
+            let agent = Trader::new(
+                Forager::new(
+                    id_counter,
+                    p,
+                    core_config().agent.INIT_FOOD,
+                    core_config().agent.INIT_WATER,
+                ));
+            trader_grid.set_object_location(agent, &agent.get_position());
+            id_counter += 1;
+        }
+
+        let mut board = Board::construct(
+            DenseGrid2D::new(dim.0.into(), dim.0.into()),
+            trader_grid,
+            DenseGrid2D::new(dim.0.into(), dim.1.into()),
+            2,
+            dim);
+
+        let result = get_traders(&mut board);
+        // assert_eq!(result, positions);
+        println!("{:?}", "here");
+        println!("{}", result.len());
+        for trader in result {
+            println!("{}", trader.id());
+        }
+
+    }
     // #[test]
     // fn test_get_agent_locations() {
         
     //     let dim: (u16, u16) = (10, 10);
     //     let mut board = Board::new(dim, 0);
-    //     let agent_grid: DenseGrid2D<Forager> = DenseGrid2D::new(dim.0.into(), dim.0.into());
+    //     let trader_grid: DenseGrid2D<Trader> = DenseGrid2D::new(dim.0.into(), dim.0.into());
+        
     //     let mut positions: Vec<Int2D> = Vec::new();
     //     positions.push(Int2D { x: 4, y: 8 });
     //     positions.push(Int2D { x: 1, y: 2 });
+        
     //     for p in positions {
-    //         let agent = Forager::new(
-    //             0,
-    //             p,
-    //             core_config().agent.INIT_FOOD,
-    //             core_config().agent.INIT_WATER,
-    //         );
-    //         agent_grid.set_object_location(agent, &agent.pos)
+    //         let agent = Trader::new(
+    //             Forager::new(
+    //                 0,
+    //                 p,
+    //                 core_config().agent.INIT_FOOD,
+    //                 core_config().agent.INIT_WATER,
+    //             ));
+    //         trader_grid.set_object_location(agent, &agent.get_position())
     //     }
 
-    //     let result = get_agent_locations();
+    //     let result = get_trader_locations();
+    //     assert_eq!(result, positions);
 
     // }
 }

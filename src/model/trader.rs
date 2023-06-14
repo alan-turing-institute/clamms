@@ -1,4 +1,4 @@
-use krabmaga::engine::agent::Agent;
+use krabmaga::engine::{agent::Agent, location::Int2D};
 use std::hash::{Hash, Hasher};
 
 use super::{inventory::Inventory, routing::{Position, Router}, forager::Forager, environment::Resource};
@@ -45,6 +45,12 @@ impl Trader {
 //         todo!()
 //     }
 // }
+
+impl Position for Trader {
+    fn get_position(&self) -> Int2D {
+        self.forager.pos.to_owned()
+    }
+}
 
 impl Inventory for Trader {
     fn count(&self, resource: &Resource) -> i32 {
