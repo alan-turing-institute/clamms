@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use super::board::{Board, Patch};
 use super::environment::Resource;
 use crate::model::forager::Direction;
@@ -7,6 +9,7 @@ use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;
 use super::trader::Trader;
+// use krabmaga::utils;
 
 
 pub trait Router: Position {
@@ -23,26 +26,6 @@ pub trait Router: Position {
             .to_owned()
     }
     
-
-    // fn get_traders(
-    //     &self,
-    //     state: &Box<&dyn State>,
-    //     // agent: &Trader
-    // ) -> Vec<Trader> {
-    //     let mut cur_id = 0;
-    //     let mut traders = Vec<Trader>::new();
-    //     let state = state.as_any().downcast_ref::<Board>().unwrap();
-    //     while let trader = state.trader_grid.get(&Trader::dummy(cur_id)) {
-    //         traders.push(trader);
-    //     }
-
-        // match state.forager_grid.get(&Trader::dummy(agent.id())) {
-        //     Some(matching_agent) => Some(Box::new(matching_agent)),
-        //     None => None,
-        // }
-    // }
-
-
     /// Finds the coordinates of the nearest specified resource.
     fn find_nearest(
         &self,
@@ -77,16 +60,23 @@ pub trait Router: Position {
     }
 }
 
+/// This returns *clones* on the Traders. Therefore it should remain private becuase of the risk of the clones getting out of sync.
 fn get_traders(state: &mut dyn State) -> Vec<Trader> {
     let state = state.as_any().downcast_ref::<Board>().unwrap();
-    let mut traders = Vec::new();
-    for ref_cell in state.trader_grid.locs.iter() {
-        for x in ref_cell.borrow().iter() {
-            traders.append(&mut x.clone());
-        }
+
+    cfg_if! {
+        if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
+            state.trader_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
+        } else {
+            let mut traders = Vec::new();
+            for ref_cell in state.trader_grid.locs.iter() {
+                for x in ref_cell.borrow().iter() {
+                    traders.append(&mut x.clone());
+                }
+            }
+            traders
+        }    
     }
-    traders
-    // state.trader_grid.locs.into_iter().into().into_iter().collect()
 }
 
 fn get_trader_locations(state: &mut dyn State) -> Vec<Int2D>{
@@ -223,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_agent_locations() {
+    fn test_get_traders() {
         
         let dim: (u16, u16) = (10, 10);
         let trader_grid: DenseGrid2D<Trader> = DenseGrid2D::new(dim.0.into(), dim.0.into());
