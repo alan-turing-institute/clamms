@@ -1,21 +1,23 @@
-use std::fmt::Debug;
-
 use itertools::Itertools;
 use krabmaga::HashMap;
+use rand::distributions::Distribution;
+use rand::{rngs::StdRng, Rng};
+use std::fmt::Debug;
+use strum::IntoEnumIterator;
 use tuple_conv::RepeatedTuple;
 
 use crate::config::core_config;
 
 #[derive(Debug)]
 pub struct QTable<S, L, A> {
-    tab: HashMap<(((S, L), (S, L)), A), f32>,
+    pub tab: HashMap<(((S, L), (S, L)), A), f32>,
 }
 
 impl<S, L, A> QTable<S, L, A>
 where
     S: std::cmp::Eq + std::hash::Hash + Clone + Debug,
     L: std::cmp::Eq + std::hash::Hash + Clone + Debug,
-    A: std::cmp::Eq + std::hash::Hash + Clone + Debug,
+    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + IntoEnumIterator,
 {
     pub fn new(state_items: Vec<S>, state_levels: Vec<L>, actions: Vec<A>) -> Self {
         let mut q_tbl = HashMap::new();
@@ -66,5 +68,48 @@ where
         }
 
         QTable { tab: q_tbl }
+    }
+
+    pub fn get_tab_mut(&mut self) -> &mut HashMap<(((S, L), (S, L)), A), f32> {
+        &mut self.tab
+    }
+    pub fn get_tab(&self) -> &HashMap<(((S, L), (S, L)), A), f32> {
+        &self.tab
+    }
+
+    pub fn sample_action(&self, state: &((S, L), (S, L)), rng: &mut StdRng) -> A {
+        let mut optimal_a: A = self.pick_rnd(rng);
+        let mut q_optimal = self.get_tab().get(&(state.to_owned(), optimal_a.clone()));
+
+        for a in A::iter() {
+            let q_a = self.get_tab().get(&(state.to_owned(), a.clone()));
+            // println!("{:?}, {:?}", a, q_a);
+            if q_a > q_optimal {
+                optimal_a = a;
+                q_optimal = self.get_tab().get(&(state.to_owned(), optimal_a.clone()));
+            }
+        }
+        // println!("{:?}", optimal_a);
+        let r: f32 = rng.gen();
+        if r < core_config().rl.EPSILON {
+            optimal_a = self.pick_rnd(rng);
+        }
+        optimal_a
+    }
+    fn pick_rnd(&self, rng: &mut StdRng) -> A {
+        let r: f32 = rng.gen();
+        let mut a_iter = A::iter();
+        let a: A;
+        if r < 0.3 {
+            a = a_iter.next().expect("at least one action in enum");
+        } else if r < 0.6 {
+            a_iter.next();
+            a = a_iter.next().unwrap();
+        } else {
+            a_iter.next();
+            a_iter.next();
+            a = a_iter.next().unwrap();
+        }
+        a
     }
 }

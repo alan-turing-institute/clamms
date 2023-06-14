@@ -79,6 +79,10 @@ pub struct WorldConfig {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct RLConfig {
     pub INIT_Q_VALUES: f32,
+    pub SARSA_N: u8,
+    pub GAMMA: f32,
+    pub ALPHA: f32,
+    pub EPSILON: f32,
 }
 
 /// Wrapper struct for parsing the `core` table.

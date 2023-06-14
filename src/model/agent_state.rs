@@ -3,6 +3,10 @@ use strum_macros::EnumIter;
 
 use crate::config::core_config;
 
+pub trait DiscrRep<S, L> {
+    fn representation(&self) -> ((S, L), (S, L));
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentState {
     pub food: i32,
@@ -20,6 +24,16 @@ pub enum AgentStateItems {
 pub struct AgentStateDiscrete {
     pub food: InvLevel,
     pub water: InvLevel,
+}
+
+impl DiscrRep<AgentStateItems, InvLevel> for AgentState {
+    fn representation(&self) -> ((AgentStateItems, InvLevel), (AgentStateItems, InvLevel)) {
+        let discr = self.discretise();
+        (
+            (AgentStateItems::Food, discr.food),
+            (AgentStateItems::Water, discr.water),
+        )
+    }
 }
 
 impl AgentState {
@@ -49,6 +63,18 @@ impl AgentState {
 
         AgentStateDiscrete { food: f, water: w }
     }
+
+    // pub fn representation<S, L>(&self) -> ((S, L), (S, L))
+    // where
+    //     S: std::cmp::Eq + std::hash::Hash + Clone,
+    //     L: std::cmp::Eq + std::hash::Hash + Clone,
+    // {
+    //     let discr = self.discretise();
+    //     (
+    //         (AgentStateItems::Food, discr.food),
+    //         (AgentStateItems::Water, discr.water),
+    //     )
+    // }
 }
 
 #[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq)]
