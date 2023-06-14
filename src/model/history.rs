@@ -1,11 +1,12 @@
 use super::{action::Action, agent_state::AgentState, reward::Reward};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct History {
     trajectory: Vec<SAR>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SAR {
     pub state: AgentState,
     pub action: Action,

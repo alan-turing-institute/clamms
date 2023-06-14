@@ -20,7 +20,10 @@ pub trait Router: Position {
         let agent_pos = &self.get_position();
         let mut nearest: Option<Int2D> = None;
 
-        let resource_locations = state.resource_locations.get(resource).expect("HashMap initialised for all resource types");
+        let resource_locations = state
+            .resource_locations
+            .get(resource)
+            .expect("HashMap initialised for all resource types");
         for resource_pos in resource_locations {
             if let Some(h) = horizon {
                 if sight_distance(agent_pos, resource_pos) > h {

@@ -22,19 +22,27 @@ fn main() {
     let num_agents = 4;
     let dim: (u16, u16) = (10, 10);
 
-    let mut state = Board::new(dim, num_agents);
+    let mut board = Board::new(dim, num_agents);
 
     // Use simulate
     // simulate!(state, step, 10, false);
 
     // Use scheduler and run directly once
     let mut schedule: Schedule = Schedule::new();
-    let state = state.as_state_mut();
+    let state = board.as_state_mut();
     state.init(&mut schedule);
     for i in 0..step {
         println!("Step: {i}");
         schedule.step(state);
     }
+    // Open output file and write history
+    let mut f = File::create("output.json").unwrap();
+    writeln!(
+        f,
+        "{}",
+        serde_json::to_string_pretty(&board.agent_histories).unwrap()
+    )
+    .unwrap();
 }
 
 // Main used when a visualization feature is applied.

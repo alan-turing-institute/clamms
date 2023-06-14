@@ -2,16 +2,16 @@ use super::environment::Resource;
 use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
 use crate::config::{INIT_FOOD, INIT_WATER};
-use strum::IntoEnumIterator;
-use krabmaga::HashMap;
-// use hashbrown::HashMap;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
     fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
 };
+use krabmaga::HashMap;
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::hash::{Hash, Hasher};
+use strum::IntoEnumIterator;
 
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
@@ -116,7 +116,10 @@ impl State for Board {
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
                 if let EnvItem::Resource(resource) = patch.env_item {
-                    let v = self.resource_locations.get_mut(&resource).expect("HashMap initialised for all resource types");
+                    let v = self
+                        .resource_locations
+                        .get_mut(&resource)
+                        .expect("HashMap initialised for all resource types");
                     v.push(pos.to_owned());
                 }
                 id += 1;
