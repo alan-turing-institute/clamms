@@ -19,7 +19,7 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Forager {
-    pub id: u32,
+    id: u32,
     pub pos: Int2D,
     food: i32,
     water: i32,

@@ -40,7 +40,7 @@ impl VisualizationState<Board> for BoardVis {
         _state: &Board,
     ) -> Option<Box<dyn AgentRender>> {
         Some(Box::new(ForagerVis {
-            id: agent.downcast_ref::<Forager>().unwrap().id,
+            id: agent.downcast_ref::<Forager>().unwrap().id(),
         }))
     }
 
