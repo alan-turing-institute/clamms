@@ -16,9 +16,13 @@ mod visualization;
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     use crate::model::{
-        action::Action, agent_state::AgentState, board::Board, tabular_rl::SARSAModel,
+        action::Action,
+        agent_state::{AgentStateItems, InvLevel},
+        board::Board,
+        tabular_rl::SARSAModel,
     };
     use krabmaga::engine::{schedule::Schedule, state::State};
+    use strum::IntoEnumIterator;
 
     let seed = 0;
     let step = 100;
@@ -31,7 +35,11 @@ fn main() {
     // simulate!(state, step, 10, false);
 
     // setup RL model
-    // let model = SARSAModel::new(AgentState.to_vec(), Action.to_vec());
+    let model = SARSAModel::new(
+        AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
+        InvLevel::iter().collect::<Vec<InvLevel>>(),
+        Action::iter().collect::<Vec<Action>>(),
+    );
 
     // Use scheduler and run directly once
     let mut schedule: Schedule = Schedule::new();

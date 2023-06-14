@@ -1025,6 +1025,7 @@ dependencies = [
 name = "clamms"
 version = "0.1.0"
 dependencies = [
+ "itertools",
  "krabmaga",
  "lazy_static",
  "rand",
@@ -1034,6 +1035,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "toml",
+ "tuple-conv",
 ]
 
 [[package]]
@@ -2138,6 +2140,15 @@ checksum = "9b2d4429acc1deff0fbdece0325b4997bdb02b2c245ab7023fd5deca0f6348de"
 dependencies = [
  "core-foundation-sys",
  "mach2",
+]
+
+[[package]]
+name = "itertools"
+version = "0.10.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
+dependencies = [
+ "either",
 ]
 
 [[package]]
@@ -3748,6 +3759,12 @@ dependencies = [
  "unicode-segmentation",
  "unicode-width",
 ]
+
+[[package]]
+name = "tuple-conv"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd6314683350324c1bb3d71a65fbeacb4e870cb4faf30b28d8a7787fb8116dd"
 
 [[package]]
 name = "typenum"

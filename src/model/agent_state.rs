@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumIter;
 
 use crate::config::core_config;
 
@@ -9,6 +10,13 @@ pub struct AgentState {
     // pub last_action: Option<Action>,
 }
 
+#[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq)]
+pub enum AgentStateItems {
+    Food,
+    Water,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct AgentStateDiscrete {
     pub food: InvLevel,
     pub water: InvLevel,
@@ -43,6 +51,7 @@ impl AgentState {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq)]
 pub enum InvLevel {
     Critical,
     Low,
