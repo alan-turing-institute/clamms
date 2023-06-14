@@ -11,13 +11,19 @@ pub struct AgentState {
 }
 
 impl AgentState {
-    fn encode(&self) -> Tensor {
-        let t = Tensor::zeros(&[2], kind::FLOAT_CPU);
-        // t = torch.tensor([food, water])
-        let t = Tensor::from_slice(&[self.food, self.water]).internal_cast_float(true);
-        // torch.cast(t, FLOAT_CPU)
-        t
-    }
+   pub fn encode(&self) -> Tensor {
+        Tensor::from_slice(&[self.food, self.water]).internal_cast_float(true)
+    }    
+}
+
+/// Encodes a slice of `AgentState` to a Tensor.
+pub fn encode_vec_of_states(v: &[AgentState]) -> Tensor {
+    let v: Vec<Tensor> = v.into_iter().map(|agent_state| agent_state.encode()).collect();
+    Tensor::stack(&v, 0)
+}
+/// Expands a slice of Tensors as a batch.
+pub fn encode_batch(v: &[Tensor]) -> Tensor {
+    Tensor::stack(&v, 0)
 }
 
 #[cfg(test)]
@@ -26,8 +32,46 @@ mod tests {
 
     #[test]
     fn test_encode() {
-        let agent_state = AgentState {food: 0, water: 0};
-        let t = agent_state.encode();
-        println!("{}", t);
+        let agent_state = AgentState {food: 0, water: 1};
+        let t1 = agent_state.encode();
+        assert_eq!(t1.size(), vec![2]);
+        // println!("{}", t1);
+        
     }
+    #[test]
+    fn test_encode_vec_of_states() {
+        let v = vec![AgentState {food: 0, water: 1}, 
+        AgentState {food: 4, water: 2},
+        AgentState {food: 9, water: 5}];
+
+        let tensor_ts1 = encode_vec_of_states(&v);
+        let tensor_ts2 = encode_vec_of_states(&v);
+        let batch_ts = encode_batch(&[tensor_ts1, tensor_ts2]);
+
+        assert_eq!(batch_ts.size(), vec![2, 3, 2]);
+        // println!("{}", t1);
+        
+    }
+
+    // Sample 1: [0, 1], [2, 3], [4, 5] : What shape is this? (3, 2) |
+    // Sample 2: [6, 7], [8, 9], [10, 11]                            |
+                                                                  // -> Shape: (2, 3, 2)
+
+
+    // #[test]
+    // fn test_encode() {
+    //     let agent_state = AgentState {food: 0, water: 1};
+    //     let t1 = agent_state.encode();
+        
+    //     let t1_2 = agent_state.encode();
+    //     let t2 = agent_state.encode();
+    //     let t2_2 = agent_state.encode();
+    //     let t3 = agent_state.encode().reshape([1, 2]);
+    //     let t_stack = tch::Tensor::vstack(&[t1, t2]);
+    //     let t3 = tch::Tensor::vstack(&[t1_2, t2_2]);
+    //     let t_stack_again = tch::Tensor::stack(&[t_stack, t3], 0);
+    //     // println!("{}", t1_2);
+    //     // println!("{}", t_stack);
+    //     println!("{}", t_stack_again);
+    // }
 }
