@@ -11,6 +11,8 @@ edition = "2021"
 [dependencies]
 krabmaga = "0.3.*"
 rand = "0.8.5"
+strum = "0.24"
+strum_macros = "0.24"
 lazy_static = "*"
 toml = "*"
 serde = { version = "1.0", features = ["derive"] }

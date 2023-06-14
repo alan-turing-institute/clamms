@@ -18,23 +18,32 @@ fn main() {
     use crate::model::board::Board;
     use krabmaga::engine::{schedule::Schedule, state::State};
 
+    let seed = 0;
     let step = 100;
     let num_agents = 4;
     let dim: (u16, u16) = (10, 10);
 
-    let mut state = Board::new(dim, num_agents);
+    let mut board = Board::new_with_seed(dim, num_agents, seed);
 
     // Use simulate
     // simulate!(state, step, 10, false);
 
     // Use scheduler and run directly once
     let mut schedule: Schedule = Schedule::new();
-    let state = state.as_state_mut();
+    let state = board.as_state_mut();
     state.init(&mut schedule);
     for i in 0..step {
         println!("Step: {i}");
         schedule.step(state);
     }
+    // Open output file and write history
+    let mut f = File::create("output.json").unwrap();
+    writeln!(
+        f,
+        "{}",
+        serde_json::to_string_pretty(&board.agent_histories).unwrap()
+    )
+    .unwrap();
 }
 
 // Main used when a visualization feature is applied.
@@ -42,7 +51,7 @@ fn main() {
 fn main() {
     use model::board::Board;
 
-    let num_agents = 4;
+    let num_agents = 1;
     let dim: (u16, u16) = (20, 20);
 
     let state = Board::new(dim, num_agents);
