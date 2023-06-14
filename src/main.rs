@@ -1,4 +1,7 @@
-use krabmaga::*;
+use std::collections::BTreeMap;
+
+use krabmaga::{engine::location::Int2D, hashbrown::HashSet, *};
+use model::environment::Resource;
 mod config;
 mod model;
 
@@ -16,7 +19,10 @@ mod visualization;
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
     use crate::model::board::Board;
-    use krabmaga::engine::{schedule::Schedule, state::State};
+    use krabmaga::{
+        engine::{location::Int2D, schedule::Schedule, state::State},
+        hashbrown::HashSet,
+    };
 
     let seed = 0;
     let step = 100;
@@ -24,7 +30,6 @@ fn main() {
     let dim: (u16, u16) = (10, 10);
 
     let mut board = Board::new_with_seed(dim, num_agents, seed);
-
     // Use simulate
     // simulate!(state, step, 10, false);
 
@@ -51,10 +56,10 @@ fn main() {
 fn main() {
     use model::board::Board;
 
-    let num_agents = 1;
-    let dim: (u16, u16) = (20, 20);
-
-    let state = Board::new(dim, num_agents);
+    let num_agents = 10;
+    let seed = 0;
+    let dim: (u16, u16) = (22, 22);
+    let state = Board::new_with_seed_resources(dim, num_agents, seed, "resource_locations.json");
     Visualization::default()
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
         .with_simulation_dimensions((dim.0 + 2).into(), (dim.1 + 2).into())
