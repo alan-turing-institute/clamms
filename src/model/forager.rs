@@ -232,17 +232,4 @@ impl Forager {
             water,
         }
     }
-
-    /// Dummy forager for matching just on ID.
-    pub fn dummy(id: u32) -> Self {
-        Forager {
-            id,
-            pos: Int2D {
-                x: Default::default(),
-                y: Default::default(),
-            },
-            food: 0,
-            water: 0,
-        }
-    }
 }
