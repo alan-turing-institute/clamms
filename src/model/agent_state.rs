@@ -21,15 +21,12 @@ pub fn encode_vec_of_states(v: &[AgentState]) -> Tensor {
     let v: Vec<Tensor> = v.into_iter().map(|agent_state| agent_state.encode()).collect();
     Tensor::stack(&v, 0)
 }
-/// Expands a slice of Tensors as a batch.
-pub fn encode_batch(v: &[Tensor]) -> Tensor {
-    Tensor::stack(&v, 0)
-}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::model::utils::encode_batch;
+    
     #[test]
     fn test_encode() {
         let agent_state = AgentState {food: 0, water: 1};

@@ -20,3 +20,24 @@ impl Action {
         }  
     } 
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::model::utils::encode_batch;
+
+    use super::*;
+
+    #[test]
+    fn test_encode() {
+        
+        let enc_action = encode_batch(&[Action::ToFood.encode(), 
+        Action::ToWater.encode(),
+        Action::Stationary.encode(),
+        Action::ToWater.encode()]);
+
+        print!("{}", enc_action);
+
+        assert_eq!(enc_action.size(), vec![4, 3]);
+    }
+     
+}
