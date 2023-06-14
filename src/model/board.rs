@@ -1,3 +1,4 @@
+use super::environment::Resource;
 use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
 use crate::config::{INIT_FOOD, INIT_WATER};
@@ -10,6 +11,7 @@ use krabmaga::HashMap;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::hash::{Hash, Hasher};
+use strum::IntoEnumIterator;
 
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
@@ -54,6 +56,7 @@ pub struct Board {
     pub dim: (u16, u16),
     pub num_agents: u8,
     pub agent_histories: HashMap<u32, History>,
+    pub resource_locations: HashMap<Resource, Vec<Int2D>>,
     pub rng: StdRng,
 }
 
@@ -66,6 +69,7 @@ impl Board {
             dim,
             num_agents,
             agent_histories: HashMap::new(),
+            resource_locations: HashMap::new(),
             rng: StdRng::from_entropy(),
         }
     }
@@ -77,6 +81,7 @@ impl Board {
             dim,
             num_agents,
             agent_histories: HashMap::new(),
+            resource_locations: HashMap::new(),
             rng: StdRng::seed_from_u64(seed),
         }
     }
@@ -103,6 +108,10 @@ impl State for Board {
 
             // Init empty history
             self.agent_histories.insert(id, History::new());
+            // Init empty resource locations
+            for resource in Resource::iter() {
+                self.resource_locations.insert(resource, Vec::new());
+            }
 
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
@@ -118,6 +127,13 @@ impl State for Board {
                 let item: EnvItem = rand::random();
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
+                if let EnvItem::Resource(resource) = patch.env_item {
+                    let v = self
+                        .resource_locations
+                        .get_mut(&resource)
+                        .expect("HashMap initialised for all resource types");
+                    v.push(pos.to_owned());
+                }
                 id += 1;
             }
         }

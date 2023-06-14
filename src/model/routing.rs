@@ -20,44 +20,24 @@ pub trait Router: Position {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
         let agent_pos = &self.get_position();
         let mut nearest: Option<Int2D> = None;
-        let mut id: u32 = 0;
 
-        // hack to handle different get_location function signature with vis feature
-        cfg_if! {
-            if #[cfg(any(feature = "visualization", feature = "visualization_wasm"))] {
-                while let Some(resource_pos) = state.resource_grid.get_location(resource.to_patch(id)) {
-                    if let Some(h) = horizon {
-                        if sight_distance(agent_pos, &resource_pos) > h {
-                            continue;
-                        }
-                    }
-                    if let Some(nearest_pos) = nearest {
-                        let dist = step_distance(&agent_pos, &resource_pos);
-                        if dist < step_distance(&agent_pos, &nearest_pos) {
-                            nearest = Some(resource_pos);
-                        }
-                    } else {
-                        nearest = Some(resource_pos);
-                    }
-                    id += 1;
+        let resource_locations = state
+            .resource_locations
+            .get(resource)
+            .expect("HashMap initialised for all resource types");
+        for resource_pos in resource_locations {
+            if let Some(h) = horizon {
+                if sight_distance(agent_pos, resource_pos) > h {
+                    continue;
+                }
+            }
+            if let Some(nearest_pos) = nearest {
+                let dist = step_distance(agent_pos, resource_pos);
+                if dist < step_distance(agent_pos, &nearest_pos) {
+                    nearest = Some(resource_pos.to_owned());
                 }
             } else {
-                while let Some(resource_pos) = state.resource_grid.get_location(&resource.to_patch(id)) {
-                    if let Some(h) = horizon {
-                        if sight_distance(agent_pos, &resource_pos) > h {
-                            continue;
-                        }
-                    }
-                    if let Some(nearest_pos) = nearest {
-                        let dist = step_distance(&agent_pos, &resource_pos);
-                        if dist < step_distance(&agent_pos, &nearest_pos) {
-                            nearest = Some(resource_pos);
-                        }
-                    } else {
-                        nearest = Some(resource_pos);
-                    }
-                    id += 1;
-                }
+                nearest = Some(resource_pos.to_owned());
             }
         }
         nearest
