@@ -1,7 +1,8 @@
+use crate::config::core_config;
+
 use super::environment::Resource;
 use super::history::History;
 use super::{environment::EnvItem, forager::Forager};
-use crate::config::{INIT_FOOD, INIT_WATER};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -104,8 +105,8 @@ impl State for Board {
                     x: x.into(),
                     y: y.into(),
                 },
-                INIT_FOOD,
-                INIT_WATER,
+                core_config().agent.INIT_FOOD,
+                core_config().agent.INIT_WATER,
             );
 
             // Init empty history
