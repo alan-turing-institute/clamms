@@ -10,7 +10,6 @@ use krabmaga::engine::{
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
 
@@ -57,7 +56,8 @@ pub struct Board {
     pub dim: (u16, u16),
     pub num_agents: u8,
     pub agent_histories: HashMap<u32, History>,
-    pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
+    // TODO: consider refactor to BTreeMap if issues occur around deterministic iteration
+    pub resource_locations: HashMap<Resource, Vec<Int2D>>,
     pub rng: StdRng,
 }
 
@@ -70,7 +70,7 @@ impl Board {
             dim,
             num_agents,
             agent_histories: HashMap::new(),
-            resource_locations: BTreeMap::new(),
+            resource_locations: HashMap::new(),
             rng: StdRng::from_entropy(),
         }
     }
@@ -82,7 +82,7 @@ impl Board {
             dim,
             num_agents,
             agent_histories: HashMap::new(),
-            resource_locations: BTreeMap::new(),
+            resource_locations: HashMap::new(),
             rng: StdRng::seed_from_u64(seed),
         }
     }
@@ -125,7 +125,7 @@ impl State for Board {
                     x: i.into(),
                     y: j.into(),
                 };
-                let item: EnvItem = rand::random();
+                let item: EnvItem = self.rng.gen();
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
                 if let EnvItem::Resource(resource) = patch.env_item {
