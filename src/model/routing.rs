@@ -2,13 +2,36 @@ use super::board::{Board, Patch};
 use super::environment::Resource;
 use crate::model::forager::Direction;
 use krabmaga::cfg_if::cfg_if;
+use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;
 
+
+
 pub trait Router: Position {
+    
     /// Gets an appropriate direction of movement towards a specified resource.
-    fn try_move_towards(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction>;
+    fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction>;
+
+    fn get_resource_locations(&self, resource: &Resource, state: &mut dyn State) -> Vec<Int2D> {
+        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        state
+            .resource_locations
+            .get(resource)
+            .expect("HashMap initialised for all resource types")
+            .to_owned()
+    }
+    
+    // fn get_agent_locations(&self, state: &mut dyn State) -> Vec<Int2D>{
+    //     let state = state.as_any().downcast_ref::<Board>().unwrap();
+    //     let mut agent_locations: Vec<Int2D>;
+    //     for agent in state.forager_grid {
+    //             // iter_objects(closure) {
+    //         agent_locations.append(state.forager_grid.get_location(agent));
+    //     }
+    //     agent_locations
+    // }
 
     /// Finds the coordinates of the nearest specified resource.
     fn find_nearest(
@@ -116,7 +139,10 @@ pub fn move_towards(pos: &Int2D, target: &Int2D, rng: &mut StdRng) -> Option<Dir
 
 #[cfg(test)]
 mod tests {
+    use crate::{model::forager::Forager, config::core_config};
+
     use super::*;
+    use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
     use rand::SeedableRng;
 
     #[test]
@@ -169,4 +195,27 @@ mod tests {
         let result = move_towards(&pos, &target, &mut rng);
         assert!(result == Some(Direction::South) || result == Some(Direction::West));
     }
+
+    // #[test]
+    // fn test_get_agent_locations() {
+        
+    //     let dim: (u16, u16) = (10, 10);
+    //     let mut board = Board::new(dim, 0);
+    //     let agent_grid: DenseGrid2D<Forager> = DenseGrid2D::new(dim.0.into(), dim.0.into());
+    //     let mut positions: Vec<Int2D> = Vec::new();
+    //     positions.push(Int2D { x: 4, y: 8 });
+    //     positions.push(Int2D { x: 1, y: 2 });
+    //     for p in positions {
+    //         let agent = Forager::new(
+    //             0,
+    //             p,
+    //             core_config().agent.INIT_FOOD,
+    //             core_config().agent.INIT_WATER,
+    //         );
+    //         agent_grid.set_object_location(agent, &agent.pos)
+    //     }
+
+    //     let result = get_agent_locations();
+
+    // }
 }

@@ -1,4 +1,5 @@
 use krabmaga::engine::agent::Agent;
+use std::hash::{Hash, Hasher};
 
 use super::{inventory::Inventory, routing::{Position, Router}, forager::Forager, environment::Resource};
 
@@ -11,6 +12,10 @@ pub struct Trader {
 impl Trader {
     pub fn new(forager: Forager) -> Self {
         Trader{ forager }
+    }
+
+    pub fn id(&self) -> u32 {
+        self.forager.id()
     }
 }
 
@@ -48,5 +53,22 @@ impl Inventory for Trader {
 
     fn acquire(&mut self, resource: &Resource, quantity: i32) -> () {
         self.forager.acquire(resource, quantity)
+    }
+}
+
+impl Eq for Trader {}
+
+impl PartialEq for Trader {
+    fn eq(&self, other: &Trader) -> bool {
+        self.id() == other.id()
+    }
+}
+
+impl Hash for Trader {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        self.id().hash(state);
     }
 }

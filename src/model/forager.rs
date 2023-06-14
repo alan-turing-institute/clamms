@@ -104,8 +104,8 @@ impl Agent for Forager {
 
         // route agent based on action
         let route = match action {
-            Action::ToFood => self.try_move_towards(&Resource::Food, state),
-            Action::ToWater => self.try_move_towards(&Resource::Water, state),
+            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state),
+            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state),
             _ => None,
         };
         if let Some(dir) = route {
@@ -121,7 +121,7 @@ impl Agent for Forager {
         }
 
         // update agent position (executing action)
-        state.agent_grid.set_object_location(
+        state.forager_grid.set_object_location(
             *self,
             &Int2D {
                 x: self.pos.x,
@@ -148,7 +148,7 @@ impl Agent for Forager {
         // push (s_n, a_n, r_n+1) to history
         state
             .agent_histories
-            .get_mut(&self.id)
+            .get_mut(&self.id())
             .expect("HashMap initialised for all agents")
             .push(SAR::new(
                 agent_state,
@@ -186,7 +186,7 @@ impl Position for Forager {
 }
 
 impl Router for Forager {
-    fn try_move_towards(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction> {
+    fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction> {
         // Downcast to get access to rng
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
         match &self.find_nearest(resource, state, None) {
@@ -232,6 +232,10 @@ impl Forager {
             food,
             water,
         }
+    }
+
+    pub fn id(&self) -> u32 {
+        self.id
     }
 
     /// Dummy forager for matching just on ID.

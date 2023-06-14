@@ -2,6 +2,7 @@ use crate::config::core_config;
 
 use super::environment::Resource;
 use super::history::History;
+use super::trader::Trader;
 use super::{environment::EnvItem, forager::Forager};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
@@ -54,7 +55,8 @@ impl PartialEq for Patch {
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
-    pub agent_grid: DenseGrid2D<Forager>,
+    pub forager_grid: DenseGrid2D<Forager>,
+    pub trader_grid: DenseGrid2D<Trader>,
     pub dim: (u16, u16),
     pub num_agents: u8,
     pub agent_histories: HashMap<u32, History>,
@@ -67,7 +69,8 @@ impl Board {
     pub fn new(dim: (u16, u16), num_agents: u8) -> Board {
         Board {
             step: 0,
-            agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
+            forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
+            trader_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
@@ -79,7 +82,8 @@ impl Board {
     pub fn new_with_seed(dim: (u16, u16), num_agents: u8, seed: u64) -> Board {
         Board {
             step: 0,
-            agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
+            forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
+            trader_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
@@ -165,12 +169,12 @@ impl State for Board {
     fn update(&mut self, step: u64) {
         // lazy_update stops the field being searchable!
         self.resource_grid.update();
-        self.agent_grid.lazy_update();
+        self.forager_grid.lazy_update();
     }
 
     fn reset(&mut self) {
         self.step = 0;
         self.resource_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
-        self.agent_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
+        self.forager_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
     }
 }
