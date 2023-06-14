@@ -1,8 +1,8 @@
 use krabmaga::engine::{agent::Agent, location::Int2D};
-use std::hash::{Hash, Hasher};
+use std::{hash::{Hash, Hasher}};
 // use std::error::Error;
 use crate::config::core_config;
-use super::{inventory::Inventory, routing::{Position, Router}, forager::Forager, environment::Resource};
+use super::{inventory::Inventory, routing::{Position, Router, get_trader_locations, get_resource_locations}, forager::Forager, environment::Resource, policy::Policy, agent_state::AgentState, action::Action};
 
 
 #[derive(Clone, Copy)]
@@ -125,6 +125,28 @@ impl Trade for Trader {
 //         todo!()
 //     }
 // }
+
+impl Policy for Trader {
+
+    fn chose_action(&self, agent_state: &AgentState) -> Action {
+        panic!("Use choose_action method instead!");
+    }
+    
+    fn choose_action(&self, state: &dyn krabmaga::engine::state::State) -> Action {
+        
+        // If another agent is closer than any resources, move towards them.
+        let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state)).expect("Food source must exist");
+        let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state)).expect("Water source must exist");
+        
+        if let Some(min_steps_to_trader) = self.min_steps_to(get_trader_locations(state)) {
+            if min_steps_to_trader < std::cmp::min(min_steps_to_food, min_steps_to_water) {
+                return Action::ToAgent
+            }
+        }
+        self.forager.choose_action(state)
+    }
+}
+
 
 impl Position for Trader {
     fn get_position(&self) -> Int2D {

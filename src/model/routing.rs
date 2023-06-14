@@ -52,7 +52,7 @@ pub trait Router: Position {
 }
 
 /// This returns *clones* on the Traders. Therefore it should remain private becuase of the risk of the clones getting out of sync.
-fn get_traders(state: &mut dyn State) -> Vec<Trader> {
+fn get_traders(state: &dyn State) -> Vec<Trader> {
     let state = state.as_any().downcast_ref::<Board>().unwrap();
 
     cfg_if! {
@@ -70,7 +70,7 @@ fn get_traders(state: &mut dyn State) -> Vec<Trader> {
     }
 }
 
-fn get_resource_locations(resource: &Resource, state: &mut dyn State) -> Vec<Int2D> {
+pub fn get_resource_locations(resource: &Resource, state: &dyn State) -> Vec<Int2D> {
     let state = state.as_any().downcast_ref::<Board>().unwrap();
     state
         .resource_locations
@@ -79,12 +79,15 @@ fn get_resource_locations(resource: &Resource, state: &mut dyn State) -> Vec<Int
         .to_owned()
 }
 
-fn get_trader_locations(state: &mut dyn State) -> Vec<Int2D>{
+pub fn get_trader_locations(state: &dyn State) -> Vec<Int2D>{
     get_traders(state).into_iter().map(|t| t.get_position()).collect()
 }
 
 pub trait Position {
     fn get_position(&self) -> Int2D;
+    fn min_steps_to(&self, targets: Vec<Int2D>) -> Option<u32> {
+        targets.iter().map(|x| step_distance(x, &self.get_position())).min()
+    }
 }
 
 fn coin_flip(rng: &mut StdRng) -> bool {

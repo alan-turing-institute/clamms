@@ -78,6 +78,10 @@ impl Policy for Forager {
             Action::ToWater
         }
     }
+
+    fn choose_action(&self, state: &dyn State) -> Action {
+        self.chose_action(&self.agent_state())
+    }
 }
 
 impl Agent for Forager {
@@ -86,18 +90,19 @@ impl Agent for Forager {
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
 
         // observe current agent state
-        let agent_state = AgentState {
-            food: self.food,
-            water: self.water,
-            // TODO: placeholder waiting for routing work
-            // food_dist: 0,
-            // water_dist: 0,
-            // last_action: state
-            //     .agent_histories
-            //     .get(&self.id)
-            //     .expect("HashMap initialised for all agents")
-            //     .last_action(),
-        };
+        let agent_state = self.agent_state();
+        // let agent_state = AgentState {
+        //     food: self.food,
+        //     water: self.water,
+        //     // TODO: placeholder waiting for routing work
+        //     // food_dist: 0,
+        //     // water_dist: 0,
+        //     // last_action: state
+        //     //     .agent_histories
+        //     //     .get(&self.id)
+        //     //     .expect("HashMap initialised for all agents")
+        //     //     .last_action(),
+        // };
 
         // select action from policy
         let action = self.chose_action(&agent_state);
@@ -236,6 +241,13 @@ impl Forager {
 
     pub fn id(&self) -> u32 {
         self.id
+    }
+
+    pub fn agent_state(&self) -> AgentState {
+        AgentState {
+            food: self.food,
+            water: self.water,
+        }
     }
 
     /// Dummy forager for matching just on ID.
