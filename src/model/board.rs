@@ -90,11 +90,14 @@ pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
             v.push(ClammsInt2D { x: i, y: j });
         }
     }
-    for i in (dim.0 / 2 - 2)..=(dim.0 / 2 + 2) {
-        for j in 1..dim.1 {
+    let mut rng = StdRng::seed_from_u64(1);
+    let mut river_width = 0i32;
+    for j in 1..dim.1 {
+        river_width += rng.gen_range(-2..=2);
+        for i in (dim.0 / 2 - 2)..=(dim.0 / 2 + 2) {
             let v = map.get_mut(&Resource::Water).unwrap();
             v.push(ClammsInt2D {
-                x: i.into(),
+                x: (i as i32 - 2 + river_width).into(),
                 y: j.into(),
             });
         }
