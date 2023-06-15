@@ -22,7 +22,7 @@ impl RenderObjectGrid2D<Board, Patch> for DenseGrid2D<Patch> {
         let obj_real = state.resource_grid.get(obj).unwrap();
         match obj_real.env_item {
             EnvItem::Land => "land".to_string(),
-            EnvItem::Bush => "bush".to_string(),
+            EnvItem::Bush => "tree".to_string(),
             EnvItem::Resource(r) => r.texture(),
         }
     }
