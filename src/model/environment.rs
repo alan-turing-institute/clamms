@@ -11,6 +11,7 @@ use super::board::Patch;
 #[derive(Clone, Copy, Debug)]
 pub enum EnvItem {
     Land,
+    Bush,
     Resource(Resource),
 }
 
@@ -21,8 +22,10 @@ impl Distribution<EnvItem> for Standard {
             EnvItem::Resource(Resource::Food)
         } else if pick < core_config().world.FOOD_ABUNDANCE + core_config().world.WATER_ABUNDANCE {
             EnvItem::Resource(Resource::Water)
-        } else {
+        } else if rng.gen::<f32>() < core_config().world.LAND_PROP {
             EnvItem::Land
+        } else {
+            EnvItem::Bush
         }
     }
 }
@@ -38,7 +41,7 @@ pub enum Resource {
 impl Resource {
     pub fn texture(&self) -> String {
         match self {
-            Resource::Food => "tree".to_string(),
+            Resource::Food => "fruit".to_string(),
             Resource::Water => "water".to_string(),
         }
     }

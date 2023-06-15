@@ -231,8 +231,10 @@ impl State for Board {
                 let item = if let Some(resource_lookup) = resource_lookup.as_ref() {
                     if let Some(resource) = resource_lookup.get(&pos) {
                         EnvItem::Resource(*resource)
-                    } else {
+                    } else if self.rng.gen::<f32>() < core_config().world.LAND_PROP {
                         EnvItem::Land
+                    } else {
+                        EnvItem::Bush
                     }
                 } else {
                     self.rng.gen()
