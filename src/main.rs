@@ -49,7 +49,7 @@ fn main() {
     // let state = board.as_state_mut();
     board.init(&mut schedule);
     for i in 0..step {
-        println!("Step: {i}");
+        // println!("Step: {i}");
         schedule.step(&mut board);
         board.model.step(i, &board.agent_histories);
     }

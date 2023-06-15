@@ -77,24 +77,29 @@ where
         &self.tab
     }
 
-    pub fn sample_action(&self, state: &((S, L), (S, L)), rng: &mut StdRng) -> A {
+    pub fn sample_action(&self, state: &((S, L), (S, L)), rng: &mut StdRng) -> (A, f32) {
         let mut optimal_a: A = self.pick_rnd(rng);
-        let mut q_optimal = self.get_tab().get(&(state.to_owned(), optimal_a.clone()));
+        let mut q_optimal = self
+            .get_tab()
+            .get(&(state.to_owned(), optimal_a.clone()))
+            .unwrap();
 
         for a in A::iter() {
-            let q_a = self.get_tab().get(&(state.to_owned(), a.clone()));
+            let q_a = self.get_tab().get(&(state.to_owned(), a.clone())).unwrap();
             // println!("{:?}, {:?}", a, q_a);
             if q_a > q_optimal {
                 optimal_a = a;
-                q_optimal = self.get_tab().get(&(state.to_owned(), optimal_a.clone()));
+                q_optimal = self
+                    .get_tab()
+                    .get(&(state.to_owned(), optimal_a.clone()))
+                    .unwrap();
             }
         }
-        // println!("{:?}", optimal_a);
         let r: f32 = rng.gen();
         if r < core_config().rl.EPSILON {
             optimal_a = self.pick_rnd(rng);
         }
-        optimal_a
+        (optimal_a, *q_optimal)
     }
     fn pick_rnd(&self, rng: &mut StdRng) -> A {
         let r: f32 = rng.gen();

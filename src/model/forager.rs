@@ -159,16 +159,16 @@ impl Agent for Forager {
                 Reward::from_inv_count_linear(self.food, self.water),
             ));
 
-        if self.id == 0 {
-            println!(
-                "agent: {:?}, food: {:?}, water: {:?}, act: {:?}, pos: {}",
-                self.id,
-                self.food,
-                self.water,
-                action,
-                self.get_position()
-            );
-        }
+        // if self.id == 0 {
+        //     println!(
+        //         "agent: {:?}, food: {:?}, water: {:?}, act: {:?}, pos: {}",
+        //         self.id,
+        //         self.food,
+        //         self.water,
+        //         action,
+        //         self.get_position()
+        //     );
+        // }
     }
 }
 

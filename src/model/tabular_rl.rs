@@ -58,7 +58,6 @@ where
 
         // do update
         if tau_ >= 0 {
-            println!("{:?}", tau_);
             // update all agents in turn
             for (id, hist) in agent_hist.iter() {
                 let tab = self.get_table_by_id_mut(*id);
@@ -108,9 +107,14 @@ where
     }
 
     pub fn sample_action_by_id(&self, id: u32, state: &((S, L), (S, L)), rng: &mut StdRng) -> A {
-        self.q_tbls
+        let (a, q_optimal) = self
+            .q_tbls
             .get(&id)
             .expect("qtable was initialised for all agent id's")
-            .sample_action(state, rng)
+            .sample_action(state, rng);
+        if id == 0 {
+            println!("{}", q_optimal)
+        }
+        a
     }
 }
