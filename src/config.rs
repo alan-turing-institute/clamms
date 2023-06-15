@@ -48,6 +48,9 @@ pub struct AgentConfig {
     pub WATER_CONSUME_RATE: u32,
     pub FOOD_MAX_INVENTORY: i32,
     pub WATER_MAX_INVENTORY: i32,
+    pub FOOD_LOT_SIZE: u32,
+    pub WATER_LOT_SIZE: u32,
+    pub MAX_TRADE_LOTS: u32,
 }
 
 /// Configuration variables for `trustchain-core` crate.
@@ -93,6 +96,9 @@ mod tests {
         WATER_CONSUME_RATE = 1
         FOOD_MAX_INVENTORY = 456
         WATER_MAX_INVENTORY = 1
+        FOOD_LOT_SIZE = 6
+        WATER_LOT_SIZE = 2
+        MAX_TRADE_LOTS = 1
         "##;
 
         let config: Config = parse_toml(config_string).unwrap();

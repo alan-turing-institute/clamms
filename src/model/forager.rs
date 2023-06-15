@@ -5,7 +5,7 @@ use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
 use crate::config::core_config;
-use super::routing::{Router, Position, move_towards};
+use super::routing::{Router, Position, move_towards, get_resource_locations, get_trader_locations};
 use super::policy::Policy;
 use super::reward::Reward;
 use krabmaga::engine::fields::field_2d::Location2D;
@@ -19,7 +19,7 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Forager {
-    pub id: u32,
+    id: u32,
     pub pos: Int2D,
     food: i32,
     water: i32,
@@ -71,7 +71,16 @@ impl Inventory for Forager {
 }
 
 impl Policy for Forager {
+    // Deprecated:
     fn chose_action(&self, agent_state: &AgentState) -> Action {
+        if agent_state.food < agent_state.water {
+            Action::ToFood
+        } else {
+            Action::ToWater
+        }
+    }
+
+    fn choose_action(&self, agent_state: &AgentState) -> Action {
         if agent_state.food < agent_state.water {
             Action::ToFood
         } else {
@@ -86,28 +95,34 @@ impl Agent for Forager {
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
 
         // observe current agent state
-        let agent_state = AgentState {
-            food: self.food,
-            water: self.water,
-            // TODO: placeholder waiting for routing work
-            // food_dist: 0,
-            // water_dist: 0,
+        let agent_state = self.agent_state(state);
+        // let agent_state = AgentState {
+        //     food: self.food,
+        //     water: self.water,
+        //     // TODO: placeholder waiting for routing work
+        //     // food_dist: 0,
+        //     // water_dist: 0,
             // last_action: state
             //     .agent_histories
             //     .get(&self.id)
             //     .expect("HashMap initialised for all agents")
             //     .last_action(),
-        };
+        // };
+        
+        // Select action from policy
+        let action = self.choose_action(&agent_state);
 
-        // select action from policy
-        let action = self.chose_action(&agent_state);
+        // TODO: make the rest available for the Trader to call:
 
         // route agent based on action
         let route = match action {
-            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state),
-            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state),
+            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state, None),
+            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state, None),
+            Action::ToAgent => self.try_move_towards_agent(state, None),
             _ => None,
         };
+
+        // TODO: consider moving to a new update_position method:
         if let Some(dir) = route {
             match dir {
                 Direction::North => self.pos.y += 1,
@@ -128,6 +143,7 @@ impl Agent for Forager {
                 y: self.pos.y,
             },
         );
+        // END OF update_position.
 
         // resources depleted automatically after taking an action (even if Action::Stationary)
         self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);
@@ -186,19 +202,20 @@ impl Position for Forager {
 }
 
 impl Router for Forager {
-    fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction> {
-        // Downcast to get access to rng
-        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
-        match &self.find_nearest(resource, state, None) {
-            None => rand::random(),
-            Some(pos) => {
-                if pos.eq(&self.get_position()) {
-                    return None;
-                }
-                move_towards(&self.get_position(), pos, &mut state.rng)
-            }
-        }
-    }
+    // Moved to trait as default implementation:
+    // fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction> {
+    //     // Downcast to get access to rng
+    //     let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+    //     match &self.find_nearest(resource, state, None) {
+    //         None => rand::random(),
+    //         Some(pos) => {
+    //             if pos.eq(&self.get_position()) {
+    //                 return None;
+    //             }
+    //             move_towards(&self.get_position(), pos, &mut state.rng)
+    //         }
+    //     }
+    // }
 }
 
 // impl fmt::Display for Forager {
@@ -236,6 +253,28 @@ impl Forager {
 
     pub fn id(&self) -> u32 {
         self.id
+    }
+
+    pub fn agent_state(&self, state: &mut dyn krabmaga::engine::state::State) -> AgentState {
+
+        let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state));
+        let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state));
+
+        let min_steps_to_trader = self.min_steps_to(get_trader_locations(state));
+
+        AgentState {
+            food: self.food,
+            water: self.water,
+            min_steps_to_food,
+            min_steps_to_water,
+            min_steps_to_trader,
+            // TODO: placeholder waiting for routing work
+            // last_action: state
+            //     .agent_histories
+            //     .get(&self.id)
+            //     .expect("HashMap initialised for all agents")
+            //     .last_action(),
+        }
     }
 
     /// Dummy forager for matching just on ID.
