@@ -184,7 +184,6 @@ impl State for Board {
         let mut id = 0;
         for i in 0..self.dim.0 {
             for j in 0..self.dim.1 {
-                println!("{}, {}", i, j);
                 let pos = Int2D {
                     x: i.into(),
                     y: j.into(),

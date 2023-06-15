@@ -54,15 +54,20 @@ fn main() {
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
+    use config::core_config;
     use model::board::Board;
 
-    let num_agents = 10;
-    let seed = 0;
-    let dim: (u16, u16) = (22, 22);
-    let state = Board::new_with_seed_resources(dim, num_agents, seed, "resource_locations.json");
+    let num_agents = core_config().world.N_AGENTS;
+    let seed = core_config().world.RANDOM_SEED;
+    let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+    let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
+        Board::new_with_seed_resources(dim, num_agents, seed, &file_name)
+    } else {
+        Board::new_with_seed(dim, num_agents, seed)
+    };
     Visualization::default()
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
-        .with_simulation_dimensions((dim.0 + 2).into(), (dim.1 + 2).into())
+        .with_simulation_dimensions((dim.0 + 1).into(), (dim.1 + 1).into())
         .with_background_color(Color::GRAY)
         .with_name("Template")
         .start::<BoardVis, Board>(BoardVis, state);

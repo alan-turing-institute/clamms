@@ -5,6 +5,11 @@ FOOD_ABUNDANCE = 0.1
 WATER_ABUNDANCE = 0.1
 TREE_PROB = 0.1
 SWEET_PROB = 0.01
+RESOURCE_LOCATIONS_FILE = "resource_locations.json"
+# RESOURCE_LOCATIONS_FILE = "resource_locations_bigger.json"
+WIDTH = 42
+HEIGHT = 42
+N_AGENTS = 20
 
 [agent]
 INIT_FOOD = 0
