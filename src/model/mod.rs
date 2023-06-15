@@ -9,3 +9,4 @@ pub mod policy;
 pub mod reward;
 pub mod routing;
 pub mod utils;
+pub mod lstm_nn;
