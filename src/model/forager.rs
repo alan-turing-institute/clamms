@@ -4,6 +4,7 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
+use super::trader::Trader;
 use crate::config::core_config;
 use super::routing::{Router, Position, move_towards, get_resource_locations, get_trader_locations};
 use super::policy::Policy;
@@ -136,8 +137,9 @@ impl Agent for Forager {
         }
 
         // update agent position (executing action)
-        state.forager_grid.set_object_location(
-            *self,
+        state.agent_grid.set_object_location(
+            // TODO: fix to not use a trader inside forager
+            Trader::new(*self),
             &Int2D {
                 x: self.pos.x,
                 y: self.pos.y,

@@ -82,7 +82,7 @@ pub fn get_traders(state: &dyn State) -> Vec<Trader> {
 
     cfg_if! {
         if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
-            state.trader_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
+            state.agent_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
         } else {
             let mut traders = Vec::new();
             for ref_cell in state.trader_grid.locs.iter() {

@@ -26,6 +26,11 @@ impl Trader {
     pub fn id(&self) -> u32 {
         self.forager.id()
     }
+
+    /// Dummy trader for matching just on ID.
+    pub fn dummy(id: u32) -> Self {
+        Trader {forager: Forager::dummy(id)}
+    }
 }
 
 pub struct Offer(i32, i32);
@@ -192,7 +197,7 @@ impl Agent for Trader {
             cfg_if! {
                 if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
                     let offer = self.offer();
-                    state.trader_grid.apply_to_all_values(|_, trader| {
+                    state.agent_grid.apply_to_all_values(|_, trader| {
                         if trader.offer().matched(&offer) {
                             // TODO: consider picking one trader at random instead
                             // of *this* trader. (No real advantage though.)

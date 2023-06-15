@@ -28,8 +28,8 @@ impl AgentRender for ForagerVis {
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
-        // SpriteType::Emoji(String::from("crab"))
-        SpriteType::Emoji(String::from("Trade-and-market"))
+        SpriteType::Emoji(String::from("crab"))
+        // SpriteType::Emoji(String::from("Trade-and-market"))
     }
 
     /// Specify where the agent should be rendered in the window.
