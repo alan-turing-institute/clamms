@@ -92,7 +92,13 @@ impl Board {
             rng: StdRng::seed_from_u64(seed),
         }
     }
-    pub fn construct(forager_grid: DenseGrid2D<Forager>, trader_grid: DenseGrid2D<Trader>, resource_grid: DenseGrid2D<Patch>, num_agents: u8, dim: (u16, u16)) -> Board {
+    pub fn construct(
+        forager_grid: DenseGrid2D<Forager>,
+        trader_grid: DenseGrid2D<Trader>,
+        resource_grid: DenseGrid2D<Patch>,
+        num_agents: u8,
+        dim: (u16, u16),
+    ) -> Board {
         Board {
             step: 0,
             // forager_grid,

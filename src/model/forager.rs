@@ -4,11 +4,13 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
-use super::trader::Trader;
-use crate::config::core_config;
-use super::routing::{Router, Position, move_towards, get_resource_locations, get_trader_locations};
 use super::policy::Policy;
 use super::reward::Reward;
+use super::routing::{
+    get_resource_locations, get_trader_locations, move_towards, Position, Router,
+};
+use super::trader::Trader;
+use crate::config::core_config;
 use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
@@ -72,7 +74,6 @@ impl Inventory for Forager {
 }
 
 impl Policy for Forager {
-
     fn choose_action(&self, agent_state: &AgentState) -> Action {
         if agent_state.food < agent_state.water {
             Action::ToFood
@@ -95,13 +96,13 @@ impl Agent for Forager {
         //     // TODO: placeholder waiting for routing work
         //     // food_dist: 0,
         //     // water_dist: 0,
-            // last_action: state
-            //     .agent_histories
-            //     .get(&self.id)
-            //     .expect("HashMap initialised for all agents")
-            //     .last_action(),
+        // last_action: state
+        //     .agent_histories
+        //     .get(&self.id)
+        //     .expect("HashMap initialised for all agents")
+        //     .last_action(),
         // };
-        
+
         // Select action from policy
         let action = self.choose_action(&agent_state);
 
@@ -250,7 +251,6 @@ impl Forager {
     }
 
     pub fn agent_state(&self, state: &dyn krabmaga::engine::state::State) -> AgentState {
-
         let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state));
         let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state));
 

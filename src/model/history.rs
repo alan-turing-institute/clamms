@@ -57,8 +57,7 @@ mod tests {
                     water: 0,
                     min_steps_to_food: None,
                     min_steps_to_water: None,
-                    min_steps_to_trader: None
-                    // last_action: None,
+                    min_steps_to_trader: None, // last_action: None,
                 },
                 Action::Stationary,
                 Reward { val: -1 },
@@ -75,8 +74,7 @@ mod tests {
                 water: 0,
                 min_steps_to_food: None,
                 min_steps_to_water: None,
-                min_steps_to_trader: None
-            // last_action: None,
+                min_steps_to_trader: None, // last_action: None,
             },
             Action::Stationary,
             Reward { val: -1 },
@@ -87,8 +85,7 @@ mod tests {
                 water: 0,
                 min_steps_to_food: None,
                 min_steps_to_water: None,
-                min_steps_to_trader: None
-            // last_action: None,
+                min_steps_to_trader: None, // last_action: None,
             },
             Action::Stationary,
             Reward { val: -2 },

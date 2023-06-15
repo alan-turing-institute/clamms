@@ -40,11 +40,9 @@ impl VisualizationState<Board> for BoardVis {
         agent: &Box<dyn Agent>,
         _state: &Board,
     ) -> Option<Box<dyn AgentRender>> {
-
         Some(Box::new(TraderVis {
             id: agent.downcast_ref::<Trader>().unwrap().id(),
         }))
-
     }
 
     fn get_agent(
