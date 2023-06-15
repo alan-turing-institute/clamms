@@ -101,8 +101,11 @@ impl Offer {
 
 pub trait Trade {
 
+    /// Gets this trader's offer.
     fn offer(&self) -> Offer;
+    /// Decides whether this trader is prepared to raise the given current offer.
     fn will_raise_offer(&self, current_offer: &Offer, offered_count: i32, other_count: i32, offered_lot_size: u32, other_lot_size: u32) -> bool;
+    /// Settles a trade on *both* this trader *and* the counterparty.
     fn settle_trade(&mut self, counterparty: &mut Trader);
 }
 
@@ -169,15 +172,19 @@ impl Trade for Trader {
 fn settle_trade_on_counterparty(mut counterparty: Trader, offer: &Offer) -> Trader {
 
     if !offer.matched(&counterparty.offer()) {
-        // Do nothing.
-        return counterparty
+        panic!("Trade can't be settled!");
     }
-
+    // if !offer.matched(&counterparty.offer()) {
+    //     // Do nothing.
+    //     return counterparty
+    // }
+    
+    println!("***** TRADE SETTLED FOR {:?} WITH TRADER {} *****", offer, counterparty.id());
+    println!("Prior inventory: Food: {}, Water: {}", counterparty.forager.count(&Resource::Food), counterparty.forager.count(&Resource::Water));
     // Settle inventories.
     counterparty.acquire(&Resource::Food, -1 * offer.food_delta());
     counterparty.acquire(&Resource::Water, -1 * offer.water_delta());    
-
-    println!("***** TRADE SETTLED FOR {:?} WITH TRADER {} *****", offer, counterparty.id());
+    println!("Final inventory: Food: {}, Water: {}", counterparty.forager.count(&Resource::Food), counterparty.forager.count(&Resource::Water));
 
     counterparty
 }
@@ -211,21 +218,12 @@ impl Agent for Trader {
                             // TODO: consider picking one trader at random instead
                             // of *this* trader. (No real advantage though.)
                             settle_trade_on_counterparty(*trader, &offer);
-                            // Now settle the trade on *this* Trader's inventory.
+                            println!("INVERTING OFFER!");
                             settle_trade_on_counterparty(*self, &offer.invert());
                             return Some(*trader)
                         }
                         None
-                    }, GridOption::READ)
-
-                    // for trader in state.trader_grid.loc2objs.values_mut().into_iter() {
-
-                    //     if trader.offer().matched(self.offer()) {
-                    //         // TODO: consider picking one trader at random instead
-                    //         // of *this* trader. (No real advantage though.)
-                    //         self.settle_trade(trader);
-                    //     }
-                    // }
+                    }, GridOption::READ);
     
                 } else {
                     for ref_cell in state.trader_grid.locs.iter_mut() {
