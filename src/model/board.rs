@@ -115,14 +115,22 @@ impl State for Board {
             let y: u16 = self.rng.gen_range(1..self.dim.1);
 
             let id: u32 = n.into();
-
+            let loc = Int2D {
+                x: x.into(),
+                y: y.into(),
+            };
+            // TODO: CHECK 
             // let agent = Forager::new(
+            //         id,
+            //         loc,
+            //         core_config().agent.INIT_FOOD,
+            //         core_config().agent.INIT_WATER,
+            //     );
+            
+            // TODO:
             let agent = Trader::new(Forager::new(
                 id,
-                Int2D {
-                    x: x.into(),
-                    y: y.into(),
-                },
+                loc,
                 core_config().agent.INIT_FOOD,
                 core_config().agent.INIT_WATER,
             ));
@@ -133,6 +141,12 @@ impl State for Board {
             for resource in Resource::iter() {
                 self.resource_locations.insert(resource, Vec::new());
             }
+
+            // state.forager_grid.set_object_location(, &loc);
+            // TODO: CHECK TYPE YOU WANT
+            // self.forager_grid.set_object_location(agent, &loc);
+            // TODO:
+            self.trader_grid.set_object_location(agent, &loc);
 
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
@@ -184,11 +198,13 @@ impl State for Board {
         // lazy_update stops the field being searchable!
         self.resource_grid.update();
         self.forager_grid.lazy_update();
+        self.trader_grid.lazy_update();
     }
 
     fn reset(&mut self) {
         self.step = 0;
         self.resource_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
         self.forager_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
+        self.trader_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
     }
 }

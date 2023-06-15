@@ -1,3 +1,6 @@
+use crate::config::action2rotation;
+use crate::model::action::Action;
+use crate::model::policy::Policy;
 use crate::model::{board::Board, trader::Trader};
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::prelude::{Component, Quat, Transform, Visibility};
@@ -17,7 +20,9 @@ impl AgentRender for TraderVis {
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
-        SpriteType::Emoji(String::from("crab"))
+        // SpriteType::Emoji(String::from("crab")
+        SpriteType::Emoji(String::from("sweet"))
+
     }
 
     /// Specify where the agent should be rendered in the window.
@@ -36,7 +41,7 @@ impl AgentRender for TraderVis {
         } else if let Some(forager) = agent.downcast_ref::<Forager>() {
             (forager.pos.x as f32, forager.pos.y as f32, 2.)
         } else {
-            panic!()
+            panic!("Panic in fn location")
         }
     }
 
@@ -47,7 +52,25 @@ impl AgentRender for TraderVis {
 
     /// Define the degrees in radians to rotate the texture by.
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
-        0.0
+
+        // println!("agent to rotate {}", agent);
+
+        // let trader = agent.as_any().downcast_ref::<Forager>().unwrap();
+        // let agent_state = trader.forager().agent_state(**_state);
+        // let action = trader.choose_action(&agent_state);
+        // println!("{:?}", action);
+        // action2rotation(action)
+        // 0.0
+       
+        if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
+            let agent_state = trader.forager.agent_state(**_state);
+            let action = trader.choose_action(&agent_state);
+            // println!("{:?}", action);
+            action2rotation(action)
+        } else {
+            // panic!("Why is this not a Trader?!?!?")
+            0.0
+        }
     }
 
     /// Specify the code to execute for each frame, for each agent.

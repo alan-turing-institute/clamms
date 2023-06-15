@@ -1,3 +1,4 @@
+use crate::config::action2rotation;
 use crate::model::action::Action;
 use crate::model::policy::Policy;
 use std::f32::consts::PI;
@@ -15,10 +16,6 @@ pub struct ForagerVis {
     pub(crate) id: u32,
 }
 
-fn degree2radians(deg: f32) -> f32{
-    deg * PI/180.0
-}
-
 
 impl AgentRender for ForagerVis {
     // let icon_hungry = SpriteType::Emoji(String::from("crab"));
@@ -28,8 +25,8 @@ impl AgentRender for ForagerVis {
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
-        // SpriteType::Emoji(String::from("crab"))
-        SpriteType::Emoji(String::from("Trade-and-market"))
+        SpriteType::Emoji(String::from("crab"))
+        // SpriteType::Emoji(String::from("Trade-and-market"))
     }
 
     /// Specify where the agent should be rendered in the window.
@@ -54,22 +51,19 @@ impl AgentRender for ForagerVis {
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
 
         let action: Action;
-        if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
-            let agent_state = trader.forager.agent_state(**_state);
-            action = trader.choose_action(&agent_state);
-        } else {
-            let forager  = agent.as_any().downcast_ref::<Forager>().unwrap();
-            let agent_state = forager.agent_state(**_state);
-            action = forager.choose_action(&agent_state);
-        } 
+        let forager  = agent.as_any().downcast_ref::<Forager>().unwrap();
+        let agent_state = forager.agent_state(**_state);
+        action = forager.choose_action(&agent_state);
 
-        let degs = match action {
-            Action::ToAgent => 180.0,
-            Action::Stationary => 0.0,
-            Action::ToFood => 45.0,
-            Action::ToWater => 315.0
-        };
-        degree2radians(degs)
+        action2rotation(action)
+
+        // let degs = match action {
+        //     Action::ToAgent => 180.0,
+        //     Action::Stationary => 0.0,
+        //     Action::ToFood => 45.0,
+        //     Action::ToWater => 315.0
+        // };
+        // degree2radians(degs)
 
     }
 

@@ -17,7 +17,7 @@ use krabmaga::visualization::asset_handle_factory::AssetHandleFactoryResource;
 use krabmaga::visualization::fields::object_grid_2d::RenderObjectGrid2D;
 use krabmaga::visualization::simulation_descriptor::SimulationDescriptor;
 use krabmaga::visualization::visualization_state::VisualizationState;
-
+use crate::config::print_type_of;
 #[derive(Clone, Resource)]
 pub struct BoardVis;
 
@@ -41,11 +41,11 @@ impl VisualizationState<Board> for BoardVis {
         agent: &Box<dyn Agent>,
         _state: &Board,
     ) -> Option<Box<dyn AgentRender>> {
-        if let Some(trader) = agent.downcast_ref::<Trader>() {
+        if let Some(_) = agent.downcast_ref::<Trader>() {
             Some(Box::new(TraderVis {
                 id: agent.downcast_ref::<Trader>().unwrap().id(),
             }))
-        } else if let Some(forager) = agent.downcast_ref::<Forager>() {
+        } else if let Some(_) = agent.downcast_ref::<Forager>() {
             Some(Box::new(ForagerVis {
                 id: agent.downcast_ref::<Forager>().unwrap().id(),
             }))
@@ -60,11 +60,33 @@ impl VisualizationState<Board> for BoardVis {
         state: &Box<&dyn State>,
     ) -> Option<Box<dyn Agent>> {
         let state = state.as_any().downcast_ref::<Board>().unwrap();
-        match state.forager_grid.get(&Forager::dummy(agent_render.get_id())) {
-            Some(matching_agent) => Some(Box::new(matching_agent)),
-            None => None,
+        if let Some(_) = agent_render.downcast_ref::<TraderVis>() {
+            println!("In TraderVIS DOWNCAST");
+            println!("Agent render id: {}", agent_render.get_id());
+            match state.trader_grid.get(&Trader::dummy(agent_render.get_id())) {
+                
+                Some(matching_agent) => {
+                    println!("In TraderVIS DOWNCAST: inside match");
+                    Some(Box::new(matching_agent))
+                },
+                None => None,
+            }
+        } else if let Some(_) = agent_render.downcast_ref::<ForagerVis>() {
+            println!("In ForagerVIS DOWNCAST");
+            match state.forager_grid.get(&Forager::dummy(agent_render.get_id())) {
+                Some(matching_agent) => {
+                    println!("In ForagerVIS DOWNCAST: inside match");
+                    Some(Box::new(matching_agent))
+                },
+                None => None,
+            }
+        } else {
+
+            panic!("{}", format!("AgentRender type '{:?}' not recognised!", print_type_of(agent_render)));
         }
     }
 }
+
+
 
 impl BoardVis {}

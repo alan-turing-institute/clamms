@@ -4,10 +4,12 @@
 use lazy_static::lazy_static;
 // use rand::Error;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::{fs, f32::consts::PI};
 use toml;
 use regex::Regex;
 use std::path::Path;
+
+use crate::model::action::Action;
 
 pub type ResourceAbundance = f32;
 
@@ -64,6 +66,23 @@ pub struct WorldConfig {
     pub SWEET_PROB: f32,
 }
 
+pub fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
+
+fn degree2radians(deg: f32) -> f32{
+    deg * PI/180.0
+}
+
+pub fn action2rotation(action: Action) -> f32{ 
+    let degs = match action {
+        Action::ToAgent => 20.0,
+        Action::Stationary => 30.0,
+        Action::ToFood => 40.0,
+        Action::ToWater => 50.0
+    };
+    degree2radians(degs)
+}
 /// Wrapper struct for parsing the `core` table.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Config {

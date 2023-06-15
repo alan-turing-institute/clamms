@@ -26,6 +26,11 @@ impl Trader {
     pub fn id(&self) -> u32 {
         self.forager.id()
     }
+
+    /// Dummy forager for matching just on ID.
+    pub fn dummy(id: u32) -> Self {
+        Trader { forager: Forager::dummy(id)}
+    }
 }
 
 pub struct Offer(i32, i32);
