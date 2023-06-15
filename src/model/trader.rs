@@ -7,7 +7,7 @@ use super::{inventory::Inventory, routing::{Position, Router, get_trader_locatio
 
 #[derive(Clone, Copy)]
 pub struct Trader { 
-    forager: Forager
+    pub forager: Forager
 }
 
 impl Trader {

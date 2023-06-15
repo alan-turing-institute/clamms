@@ -20,5 +20,6 @@ serde_json = "1.0"
 regex = "1.8.4"
 
 [features]
+default = ["visualization", "visualization_wasm"]
 visualization = ["krabmaga/visualization"]
 visualization_wasm = ["krabmaga/visualization_wasm"]
