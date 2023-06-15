@@ -3,13 +3,13 @@
 //! Core configuration types and utilities.
 use lazy_static::lazy_static;
 // use rand::Error;
-use serde::{Deserialize, Serialize};
-use std::fs;
-use toml;
-use regex::Regex;
-use std::path::Path;
-use std::f32::consts::PI;
 use crate::model::action::Action;
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::f32::consts::PI;
+use std::fs;
+use std::path::Path;
+use toml;
 
 pub type ResourceAbundance = f32;
 
@@ -21,11 +21,23 @@ lazy_static! {
     pub static ref CORE_CONFIG: Config = open_config_file(Path::new(std::env::var(CLAMMS_CONFIG).unwrap().as_str()));
 }
 
-fn open_config_file(path: &Path) -> Config{
+fn open_config_file(path: &Path) -> Config {
     parse_toml(
-        &fs::read_to_string(path)
-        .expect(format!("Unable to find the file {}. Please check the path is correct and this file exists", CLAMMS_CONFIG).as_str()))
-        .expect(format!("Unable to read the file {}. Please check the contents of this file.", CLAMMS_CONFIG).as_str())
+        &fs::read_to_string(path).expect(
+            format!(
+                "Unable to find the file {}. Please check the path is correct and this file exists",
+                CLAMMS_CONFIG
+            )
+            .as_str(),
+        ),
+    )
+    .expect(
+        format!(
+            "Unable to read the file {}. Please check the contents of this file.",
+            CLAMMS_CONFIG
+        )
+        .as_str(),
+    )
 }
 
 /// Parses and returns core configuration.
@@ -38,8 +50,8 @@ pub fn core_config() -> &'static CORE_CONFIG {
     &CORE_CONFIG
 }
 
-pub fn degree2radians(deg: f32) -> f32{
-    deg * PI/180.0
+pub fn degree2radians(deg: f32) -> f32 {
+    deg * PI / 180.0
 }
 
 pub fn action2rotation(action: Action) -> f32 {
@@ -47,7 +59,7 @@ pub fn action2rotation(action: Action) -> f32 {
         Action::ToAgent => 180.0,
         Action::Stationary => 0.0,
         Action::ToFood => 0.0,
-        Action::ToWater => 0.0
+        Action::ToWater => 0.0,
     };
     degree2radians(degs)
 }
@@ -80,12 +92,17 @@ pub struct WorldConfig {
     pub SWEET_PROB: f32,
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct TradeConfig {
+    pub MAX_TRADE_DISTANCE: u32,
+}
 /// Wrapper struct for parsing the `core` table.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Config {
     /// Core configuration data.
     pub agent: AgentConfig,
     pub world: WorldConfig,
+    pub trade: TradeConfig,
 }
 
 #[cfg(test)]
@@ -97,12 +114,12 @@ mod tests {
         let config_string = r##"
         [world]
         RANDOM_SEED = 123
-        
+
         FOOD_ABUNDANCE = 0.1
         WATER_ABUNDANCE = 0.1
         TREE_PROB = 0.1
         SWEET_PROB = 0.01
-        
+
         [agent]
         INIT_FOOD = 0
         INIT_WATER = 0
@@ -139,7 +156,7 @@ mod tests {
         bar = 123
         "##;
 
-        lazy_static!{
+        lazy_static! {
             static ref RE: Regex = Regex::new(r"missing field").unwrap();
         }
 

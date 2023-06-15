@@ -1,13 +1,13 @@
-use crate::model::policy::Policy;
-use crate::model::{board::Board, trader::Trader, action::Action};
 use crate::config::action2rotation;
+use crate::model::forager::Forager;
+use crate::model::policy::Policy;
+use crate::model::{action::Action, board::Board, trader::Trader};
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::prelude::{Component, Quat, Transform, Visibility};
 use krabmaga::{
     engine::{agent::Agent, state::State},
     visualization::agent_render::{AgentRender, SpriteType},
 };
-use crate::model::forager::Forager;
 
 #[derive(Component)]
 pub struct TraderVis {
@@ -34,7 +34,11 @@ impl AgentRender for TraderVis {
         // }
 
         if let Some(trader) = agent.downcast_ref::<Trader>() {
-            (trader.forager().pos.x as f32, trader.forager().pos.y as f32, 2.)
+            (
+                trader.forager().pos.x as f32,
+                trader.forager().pos.y as f32,
+                2.,
+            )
         } else if let Some(forager) = agent.downcast_ref::<Forager>() {
             (forager.pos.x as f32, forager.pos.y as f32, 2.)
         } else {
@@ -49,16 +53,15 @@ impl AgentRender for TraderVis {
 
     /// Define the degrees in radians to rotate the texture by.
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
-
         let action: Action;
         if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
             let agent_state = trader.forager.agent_state(**_state);
-            action = trader.choose_action(&agent_state);
+            action = trader.forager.choose_action(&agent_state);
         } else {
-            let forager  = agent.as_any().downcast_ref::<Forager>().unwrap();
+            let forager = agent.as_any().downcast_ref::<Forager>().unwrap();
             let agent_state = forager.agent_state(**_state);
             action = forager.choose_action(&agent_state);
-        } 
+        }
 
         action2rotation(action)
     }

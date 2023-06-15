@@ -1,9 +1,13 @@
-use crate::config::core_config;
-
 use super::environment::Resource;
 use super::history::History;
-use super::trader::Trader;
+use super::trader::{settle_trade_on_counterparty, Trade, Trader};
 use super::{environment::EnvItem, forager::Forager};
+use crate::config::core_config;
+use crate::engine::fields::grid_option::GridOption;
+use crate::model::inventory::Inventory;
+use crate::model::routing::step_distance;
+use crate::model::trader;
+use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
@@ -11,11 +15,11 @@ use krabmaga::engine::{
 };
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
-
 #[derive(Clone, Copy, Debug)]
 #[allow(dead_code)]
 pub struct Patch {
@@ -92,11 +96,15 @@ impl Board {
             rng: StdRng::seed_from_u64(seed),
         }
     }
-    pub fn construct(forager_grid: DenseGrid2D<Forager>, trader_grid: DenseGrid2D<Trader>, resource_grid: DenseGrid2D<Patch>, num_agents: u8, dim: (u16, u16)) -> Board {
+    pub fn construct(
+        agent_grid: DenseGrid2D<Trader>,
+        resource_grid: DenseGrid2D<Patch>,
+        num_agents: u8,
+        dim: (u16, u16),
+    ) -> Board {
         Board {
             step: 0,
-            // forager_grid,
-            agent_grid: trader_grid,
+            agent_grid,
             resource_grid,
             dim,
             num_agents,
@@ -160,6 +168,134 @@ impl State for Board {
         }
     }
 
+    fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {
+        if self.step > 0 {
+            use super::routing::get_traders;
+            // get snapshot of agents inventories
+            let traders_pre = get_traders(self);
+            let inventories_pre: Vec<(i32, i32)> = traders_pre
+                .iter()
+                .map(|trader| {
+                    (
+                        trader.forager().count(&Resource::Food),
+                        trader.forager().count(&Resource::Water),
+                    )
+                })
+                .collect();
+
+            // randomly generate an agent trade resolution sequence
+            let mut ids: Vec<u32> = (0..self.num_agents.into()).collect();
+            ids.shuffle(&mut self.rng);
+
+            // loop through agents resolving trades
+            for id in ids {
+                let cur = get_agent_by_id(self, &id);
+
+                // Execute trade if available.
+                if !cur.offer().is_trivial() {
+                    // Get traders as mutable...(hack):
+                    // TODO: only insider trading horizon.
+                    cfg_if! {
+                        if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
+                            let offer = cur.offer();
+                            for trader in get_traders(self) {
+                                // only use the id's to keep track of which traders have been
+                                // considered rather than using reference to traders that
+                                // might change within the loop
+                                let trader_id = trader.id();
+                                if trader_id != cur.id() {
+                                    let trader = get_agent_by_id(self, &trader_id);
+                                    if trader.offer().matched(&offer) {
+                                        if step_distance(&cur.forager.pos, &trader.forager.pos)
+                                            < core_config().trade.MAX_TRADE_DISTANCE {
+                                            let settled_trader = settle_trade_on_counterparty(trader, &offer);
+                                            self.agent_grid.set_object_location(
+                                                settled_trader,
+                                                &Int2D {
+                                                    x: settled_trader.forager.pos.x,
+                                                    y: settled_trader.forager.pos.y,
+                                                },
+                                            );
+                                            self.agent_grid.update();
+
+                                            println!("INVERTING OFFER!");
+                                            let settled_cur = settle_trade_on_counterparty(cur, &offer.invert());
+                                            self.agent_grid.set_object_location(
+                                                settled_cur,
+                                                &Int2D {
+                                                    x: settled_cur.forager.pos.x,
+                                                    y: settled_cur.forager.pos.y,
+                                                },
+                                            );
+                                            self.agent_grid.update();
+                                        }
+                                    }
+                                }
+                            }
+
+                            // self.agent_grid.apply_to_all_values(|_, trader| {
+                            //     if trader.offer().matched(&offer) {
+                            //         if step_distance(&cur.forager.pos, &trader.forager.pos)
+                            //             < core_config().trade.MAX_TRADE_DISTANCE {
+                            //             // TODO: consider picking one trader at random instead
+                            //             // of *this* trader. (No real advantage though.)
+                            //             let settled_trader = settle_trade_on_counterparty(self.agent_grid.get(trader).unwrap(), &offer);
+                            //             // self.agent_grid.set_object_location(
+                            //             //     settled_trader,
+                            //             //     &Int2D {
+                            //             //         x: settled_trader.forager.pos.x,
+                            //             //         y: settled_trader.forager.pos.y,
+                            //             //     },
+                            //             // );
+                            //             println!("INVERTING OFFER!");
+                            //             let settled_cur = settle_trade_on_counterparty(cur, &offer.invert());
+                            //             self.agent_grid.set_object_location(
+                            //                 settled_cur,
+                            //                 &Int2D {
+                            //                     x: settled_cur.forager.pos.x,
+                            //                     y: settled_cur.forager.pos.y,
+                            //                 },
+                            //             );
+                            //             return Some(settled_trader)
+                            //         }
+                            //     }
+                            //     Some(self.agent_grid.get(trader).unwrap())
+                            // }, GridOption::READWRITE);
+
+                        } else {
+                            for ref_cell in state.agent_grid.locs.iter_mut() {
+                                for x in ref_cell.borrow_mut().iter_mut() {
+                                    for trader in x.iter_mut() {
+                                        if trader.offer().matched(&cur.offer()) {
+                                            // TODO: consider picking one trader at random instead
+                                            // of *this* trader. (No real advantage though.)
+                                            cur.settle_trade(trader);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // re-read from agent grid and compare inventories to pre-trade snapshot
+            // get snapshot of agents inventories post trading
+            let traders_post = get_traders(self);
+            let inventories_post: Vec<(i32, i32)> = traders_post
+                .iter()
+                .map(|trader| {
+                    (
+                        trader.forager().count(&Resource::Food),
+                        trader.forager().count(&Resource::Water),
+                    )
+                })
+                .collect();
+            println!("pre: {:?}", inventories_pre);
+            println!("post: {:?}", inventories_post);
+        }
+    }
+
     fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
         self.step += 1
     }
@@ -191,4 +327,11 @@ impl State for Board {
         self.resource_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
         self.agent_grid = DenseGrid2D::new(self.dim.0.into(), self.dim.1.into());
     }
+}
+
+pub fn get_agent_by_id(board: &mut Board, id: &u32) -> Trader {
+    board
+        .agent_grid
+        .get(&Trader::dummy(*id))
+        .expect("get agent by id")
 }

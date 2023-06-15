@@ -1,7 +1,6 @@
+use crate::config::action2rotation;
 use crate::model::action::Action;
 use crate::model::policy::Policy;
-use crate::config::action2rotation;
-use std::f32::consts::PI;
 use crate::model::{board::Board, forager::Forager, trader::Trader};
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::prelude::{Component, Quat, Transform, Visibility};
@@ -9,19 +8,17 @@ use krabmaga::{
     engine::{agent::Agent, state::State},
     visualization::agent_render::{AgentRender, SpriteType},
 };
-
+use std::f32::consts::PI;
 
 #[derive(Component)]
 pub struct ForagerVis {
     pub(crate) id: u32,
 }
 
-
-
 impl AgentRender for ForagerVis {
     // let icon_hungry = SpriteType::Emoji(String::from("crab"));
     // let icon_thirsty = SpriteType::Emoji(String::from("crab"));
-    
+
     /// Specify the assets to use. Swap "bird" with the file name of whatever emoji you want to use.
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
@@ -47,19 +44,17 @@ impl AgentRender for ForagerVis {
         (0.016, 0.016)
     }
 
-
     /// Define the degrees in radians to rotate the texture by.
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
-
         let action: Action;
         if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
             let agent_state = trader.forager.agent_state(**_state);
-            action = trader.choose_action(&agent_state);
+            action = trader.forager.choose_action(&agent_state);
         } else {
-            let forager  = agent.as_any().downcast_ref::<Forager>().unwrap();
+            let forager = agent.as_any().downcast_ref::<Forager>().unwrap();
             let agent_state = forager.agent_state(**_state);
             action = forager.choose_action(&agent_state);
-        } 
+        }
 
         action2rotation(action)
     }
