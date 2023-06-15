@@ -2,7 +2,7 @@ use krabmaga::engine::{agent::Agent, location::Int2D};
 use std::{hash::{Hash, Hasher}};
 // use std::error::Error;
 use crate::{config::core_config, model::board::Board};
-use super::{inventory::Inventory, routing::{Position, Router, get_trader_locations, get_resource_locations}, forager::Forager, environment::Resource, policy::Policy, agent_state::AgentState, action::Action};
+use super::{inventory::Inventory, routing::{Position, Router, get_trader_locations, get_resource_locations, get_traders}, forager::Forager, environment::Resource, policy::Policy, agent_state::AgentState, action::Action};
 
 
 #[derive(Clone, Copy)]
@@ -76,6 +76,7 @@ pub trait Trade {
 
     fn offer(&self) -> Offer;
     fn will_raise_offer(&self, current_offer: &Offer, offered_count: i32, other_count: i32, offered_lot_size: u32, other_lot_size: u32) -> bool;
+    fn settle_trade(&self, counterparty: Trader);
 }
 
 
@@ -117,6 +118,10 @@ impl Trade for Trader {
         let demanded_lots = current_offer.demanded_lots();
         offered_count + ((offered_lots - 1) * (offered_lot_size as i32)) > demanded_count + ((demanded_lots + 1) * (demanded_lot_size as i32))
     }
+
+    fn settle_trade(&self, counterparty: Trader) {
+        todo!()
+    }
 }
 
 impl Agent for Trader {
@@ -129,15 +134,27 @@ impl Agent for Trader {
         // select action from policy
         let action = self.choose_action(&agent_state);
 
-        // route agent based on action
-        let route = match action {
-            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state, None),
-            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state, None),
-            Action::ToAgent => self.try_move_towards_agent(state, None),
-            _ => None,
-        };
+        // // route agent based on action (delegated to forager, including move towards trader)
+        // let route = match action {
+        //     Action::ToAgent => self.try_move_towards_agent(state, None),
+        //     _ => None,
+        // };
 
-        todo!()
+        // Execute trade if available.
+        if (!self.offer().is_trivial()) {
+
+            // Check whether a matching offer is available.
+            let traders = get_traders(state); // TODO: add trading horizon parameter here.
+            for trader in traders {
+                if trader.offer().matched(self.offer()) {
+                    self.settle_trade(trader);
+                }
+            }
+
+        }
+
+        // Always finish by delegating to the wrapped forager:
+        self.forager.step(state)
     }
 }
 

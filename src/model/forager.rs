@@ -121,6 +121,8 @@ impl Agent for Forager {
             Action::ToAgent => self.try_move_towards_agent(state, None),
             _ => None,
         };
+
+        // TODO: consider moving to a new update_position method:
         if let Some(dir) = route {
             match dir {
                 Direction::North => self.pos.y += 1,
@@ -141,6 +143,7 @@ impl Agent for Forager {
                 y: self.pos.y,
             },
         );
+        // END OF update_position.
 
         // resources depleted automatically after taking an action (even if Action::Stationary)
         self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);

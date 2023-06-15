@@ -75,8 +75,9 @@ pub trait Router: Position {
     }
 }
 
+// TODO: add trading horizon parameter here.
 /// This returns *clones* on the Traders. Therefore it should remain private becuase of the risk of the clones getting out of sync.
-fn get_traders(state: &dyn State) -> Vec<Trader> {
+pub fn get_traders(state: &dyn State) -> Vec<Trader> {
     let state = state.as_any().downcast_ref::<Board>().unwrap();
 
     cfg_if! {
@@ -114,7 +115,7 @@ pub trait Position {
     }
 }
 
-fn coin_flip(rng: &mut StdRng) -> bool {
+pub fn coin_flip(rng: &mut StdRng) -> bool {
     let d = Bernoulli::new(0.5).unwrap();
     d.sample(rng)
 }
