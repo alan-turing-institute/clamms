@@ -1,5 +1,6 @@
 use krabmaga::{engine::{agent::Agent, location::Int2D}};
 use krabmaga::cfg_if::cfg_if;
+use strum_macros::Display;
 use std::{hash::{Hash, Hasher}};
 // use std::error::Error;
 use crate::{config::core_config, model::board::Board};
@@ -33,6 +34,7 @@ impl Trader {
     }
 }
 
+#[derive(Debug)]
 pub struct Offer(i32, i32);
 
 // #[derive(Error, Debug)]
@@ -90,6 +92,10 @@ impl Offer {
     /// Determines whether this offer is matched by another offer.
     fn matched(&self, offer: &Offer) -> bool {
         std::cmp::max(self.0 + offer.0, self.1 + offer.1) <= 0
+    }
+
+    fn invert(&self) -> Offer {
+        Offer(self.1, self.0)
     }
 }
 
@@ -154,7 +160,9 @@ impl Trade for Trader {
 
         // Settle water inventory for both agents.
         self.acquire(&Resource::Water, offer.water_delta());
-        counterparty.acquire(&Resource::Water, -1 * offer.water_delta());    
+        counterparty.acquire(&Resource::Water, -1 * offer.water_delta());
+
+        println!("***** TRADE SETTLED FOR {:?} BETWEEN TRADER {} and TRADER {} *****", offer, self.id(), counterparty.id())
     }
 }
 
@@ -168,10 +176,11 @@ fn settle_trade_on_counterparty(mut counterparty: Trader, offer: &Offer) -> Trad
     // Settle inventories.
     counterparty.acquire(&Resource::Food, -1 * offer.food_delta());
     counterparty.acquire(&Resource::Water, -1 * offer.water_delta());    
+
+    println!("***** TRADE SETTLED FOR {:?} WITH TRADER {} *****", offer, counterparty.id());
+
     counterparty
 }
-
-
 
 impl Agent for Trader {
     
@@ -202,6 +211,8 @@ impl Agent for Trader {
                             // TODO: consider picking one trader at random instead
                             // of *this* trader. (No real advantage though.)
                             settle_trade_on_counterparty(*trader, &offer);
+                            // Now settle the trade on *this* Trader's inventory.
+                            settle_trade_on_counterparty(*self, &offer.invert());
                             return Some(*trader)
                         }
                         None

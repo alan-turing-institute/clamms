@@ -1,6 +1,6 @@
 use crate::model::action::Action;
 use crate::model::policy::Policy;
-use crate::config::degree2radians;
+use crate::config::action2rotation;
 use std::f32::consts::PI;
 use crate::model::{board::Board, forager::Forager, trader::Trader};
 use krabmaga::bevy::ecs as bevy_ecs;
@@ -61,14 +61,7 @@ impl AgentRender for ForagerVis {
             action = forager.choose_action(&agent_state);
         } 
 
-        let degs = match action {
-            Action::ToAgent => 180.0,
-            Action::Stationary => 0.0,
-            Action::ToFood => 45.0,
-            Action::ToWater => 315.0
-        };
-        degree2radians(degs)
-
+        action2rotation(action)
     }
 
     /// Specify the code to execute for each frame, for each agent.

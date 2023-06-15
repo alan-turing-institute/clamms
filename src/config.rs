@@ -9,6 +9,7 @@ use toml;
 use regex::Regex;
 use std::path::Path;
 use std::f32::consts::PI;
+use crate::model::action::Action;
 
 pub type ResourceAbundance = f32;
 
@@ -41,6 +42,15 @@ pub fn degree2radians(deg: f32) -> f32{
     deg * PI/180.0
 }
 
+pub fn action2rotation(action: Action) -> f32 {
+    let degs = match action {
+        Action::ToAgent => 180.0,
+        Action::Stationary => 0.0,
+        Action::ToFood => 0.0,
+        Action::ToWater => 0.0
+    };
+    degree2radians(degs)
+}
 
 /// Configuration variables for `trustchain-core` crate.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
