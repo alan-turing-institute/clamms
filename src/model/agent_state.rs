@@ -4,7 +4,7 @@ use strum_macros::EnumIter;
 use crate::config::core_config;
 
 pub trait DiscrRep<S, L> {
-    fn representation(&self) -> ((S, L), (S, L));
+    fn representation(&self) -> Vec<(S, L)>;
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -27,12 +27,13 @@ pub struct AgentStateDiscrete {
 }
 
 impl DiscrRep<AgentStateItems, InvLevel> for AgentState {
-    fn representation(&self) -> ((AgentStateItems, InvLevel), (AgentStateItems, InvLevel)) {
+    fn representation(&self) -> Vec<(AgentStateItems, InvLevel)> {
         let discr = self.discretise();
-        (
+
+        vec![
             (AgentStateItems::Food, discr.food),
             (AgentStateItems::Water, discr.water),
-        )
+        ]
     }
 }
 

@@ -77,7 +77,7 @@ where
         }
     }
 
-    pub fn representation(&self) -> (((S, L), (S, L)), A) {
+    pub fn representation(&self) -> (Vec<(S, L)>, A) {
         (self.state.representation(), self.action.clone())
     }
 }
