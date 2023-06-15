@@ -116,7 +116,8 @@ impl State for Board {
 
             let id: u32 = n.into();
 
-            let agent = Forager::new(
+            // let agent = Forager::new(
+            let agent = Trader::new(Forager::new(
                 id,
                 Int2D {
                     x: x.into(),
@@ -124,7 +125,7 @@ impl State for Board {
                 },
                 core_config().agent.INIT_FOOD,
                 core_config().agent.INIT_WATER,
-            );
+            ));
 
             // Init empty history
             self.agent_histories.insert(id, History::new());

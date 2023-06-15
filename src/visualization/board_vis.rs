@@ -1,6 +1,8 @@
 use crate::model::board::{Board, Patch};
 use crate::model::forager::Forager;
+use crate::model::trader::Trader;
 use crate::visualization::forager_vis::ForagerVis;
+use crate::visualization::trader_vis::TraderVis;
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::ecs::system::Resource;
 use krabmaga::bevy::prelude::Commands;
@@ -39,9 +41,17 @@ impl VisualizationState<Board> for BoardVis {
         agent: &Box<dyn Agent>,
         _state: &Board,
     ) -> Option<Box<dyn AgentRender>> {
-        Some(Box::new(ForagerVis {
-            id: agent.downcast_ref::<Forager>().unwrap().id(),
-        }))
+        if let Some(trader) = agent.downcast_ref::<Trader>() {
+            Some(Box::new(TraderVis {
+                id: agent.downcast_ref::<Trader>().unwrap().id(),
+            }))
+        } else if let Some(forager) = agent.downcast_ref::<Forager>() {
+            Some(Box::new(ForagerVis {
+                id: agent.downcast_ref::<Forager>().unwrap().id(),
+            }))
+        } else {
+            panic!()
+        }
     }
 
     fn get_agent(
