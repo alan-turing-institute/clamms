@@ -6,6 +6,8 @@ pub mod forager;
 pub mod history;
 pub mod inventory;
 pub mod policy;
+pub mod q_table;
 pub mod reward;
 pub mod routing;
+pub mod tabular_rl;
 pub mod trader;

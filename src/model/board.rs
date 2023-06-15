@@ -1,8 +1,12 @@
 use super::environment::Resource;
 use super::history::History;
 use super::trader::{settle_trade_on_counterparty, Trade, Trader};
-use super::{environment::EnvItem, forager::Forager};
 use crate::config::core_config;
+
+use super::action::Action;
+use super::agent_state::{AgentState, AgentStateItems, InvLevel};
+use super::tabular_rl::SARSAModel;
+use super::{environment::EnvItem, forager::Forager};
 use crate::engine::fields::grid_option::GridOption;
 use crate::model::inventory::Inventory;
 use crate::model::routing::step_distance;
@@ -13,10 +17,12 @@ use krabmaga::engine::fields::field::Field;
 use krabmaga::engine::{
     fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
 };
+use krabmaga::hashbrown::HashSet;
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
@@ -56,6 +62,30 @@ impl PartialEq for Patch {
 //     }
 // }
 
+/// Clamms version of Int2D with trait implementations and conversion to Int2D
+#[derive(Clone, Copy, Serialize, Deserialize, Hash, PartialEq, PartialOrd, Eq, Ord, Debug)]
+pub struct ClammsInt2D {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl From<ClammsInt2D> for Int2D {
+    fn from(value: ClammsInt2D) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+///
+pub fn read_resource_locations(input: &str) -> BTreeMap<Resource, Vec<Int2D>> {
+    serde_json::from_str::<BTreeMap<Resource, Vec<ClammsInt2D>>>(input)
+        .unwrap()
+        .into_iter()
+        .map(|(k, v)| (k, v.into_iter().map(Int2D::from).collect()))
+        .collect()
+}
+
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
@@ -63,14 +93,20 @@ pub struct Board {
     pub agent_grid: DenseGrid2D<Trader>,
     pub dim: (u16, u16),
     pub num_agents: u8,
-    pub agent_histories: HashMap<u32, History>,
+    pub agent_histories: HashMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
     // TODO: consider refactor to BTreeMap if issues occur around deterministic iteration
     pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
     pub rng: StdRng,
+    pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+    pub loaded_map: bool,
 }
 
 impl Board {
-    pub fn new(dim: (u16, u16), num_agents: u8) -> Board {
+    pub fn new(
+        dim: (u16, u16),
+        num_agents: u8,
+        model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+    ) -> Board {
         Board {
             step: 0,
             // forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
@@ -81,9 +117,16 @@ impl Board {
             agent_histories: HashMap::new(),
             resource_locations: BTreeMap::new(),
             rng: StdRng::from_entropy(),
+            model,
+            loaded_map: false,
         }
     }
-    pub fn new_with_seed(dim: (u16, u16), num_agents: u8, seed: u64) -> Board {
+    pub fn new_with_seed(
+        dim: (u16, u16),
+        num_agents: u8,
+        seed: u64,
+        model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+    ) -> Board {
         Board {
             step: 0,
             // forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
@@ -94,25 +137,50 @@ impl Board {
             agent_histories: HashMap::new(),
             resource_locations: BTreeMap::new(),
             rng: StdRng::seed_from_u64(seed),
+            model,
+            loaded_map: false,
         }
     }
-    pub fn construct(
-        agent_grid: DenseGrid2D<Trader>,
-        resource_grid: DenseGrid2D<Patch>,
-        num_agents: u8,
+    pub fn new_with_seed_resources(
         dim: (u16, u16),
+        num_agents: u8,
+        seed: u64,
+        map_locations: &str,
+        model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     ) -> Board {
+        let path =
+            std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join(map_locations);
+        let resource_locations = read_resource_locations(&std::fs::read_to_string(path).unwrap());
         Board {
             step: 0,
-            agent_grid,
-            resource_grid,
+            agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
+            resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
             agent_histories: HashMap::new(),
-            resource_locations: BTreeMap::new(),
-            rng: StdRng::from_entropy(),
+            resource_locations,
+            rng: StdRng::seed_from_u64(seed),
+            loaded_map: true,
+            model,
         }
     }
+    // pub fn construct(
+    //     agent_grid: DenseGrid2D<Trader>,
+    //     resource_grid: DenseGrid2D<Patch>,
+    //     num_agents: u8,
+    //     dim: (u16, u16),
+    // ) -> Board {
+    //     Board {
+    //         step: 0,
+    //         agent_grid,
+    //         resource_grid,
+    //         dim,
+    //         num_agents,
+    //         agent_histories: HashMap::new(),
+    //         resource_locations: BTreeMap::new(),
+    //         rng: StdRng::from_entropy(),
+    //     }
+    // }
 }
 
 impl State for Board {
@@ -137,14 +205,26 @@ impl State for Board {
 
             // Init empty history
             self.agent_histories.insert(id, History::new());
-            // Init empty resource locations
-            for resource in Resource::iter() {
-                self.resource_locations.insert(resource, Vec::new());
-            }
 
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
         }
+
+        let resource_lookup = if !self.loaded_map {
+            // Init empty resource locations
+            for resource in Resource::iter() {
+                self.resource_locations.insert(resource, Vec::new());
+            }
+            None
+        } else {
+            let mut resource_lookup: HashMap<Int2D, Resource> = HashMap::new();
+            self.resource_locations.iter().for_each(|(&res, v)| {
+                for loc in v.iter() {
+                    resource_lookup.insert(*loc, res);
+                }
+            });
+            Some(resource_lookup)
+        };
 
         let mut id = 0;
         for i in 0..self.dim.0 {
@@ -153,15 +233,26 @@ impl State for Board {
                     x: i.into(),
                     y: j.into(),
                 };
-                let item: EnvItem = self.rng.gen();
+                let item = if let Some(resource_lookup) = resource_lookup.as_ref() {
+                    if let Some(resource) = resource_lookup.get(&pos) {
+                        EnvItem::Resource(*resource)
+                    } else {
+                        EnvItem::Land
+                    }
+                } else {
+                    self.rng.gen()
+                };
+
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
-                if let EnvItem::Resource(resource) = patch.env_item {
-                    let v = self
-                        .resource_locations
-                        .get_mut(&resource)
-                        .expect("HashMap initialised for all resource types");
-                    v.push(pos.to_owned());
+                if !self.loaded_map {
+                    if let EnvItem::Resource(resource) = patch.env_item {
+                        let v = self
+                            .resource_locations
+                            .get_mut(&resource)
+                            .expect("HashMap initialised for all resource types");
+                        v.push(pos.to_owned());
+                    }
                 }
                 id += 1;
             }
@@ -334,4 +425,26 @@ pub fn get_agent_by_id(board: &mut Board, id: &u32) -> Trader {
         .agent_grid
         .get(&Trader::dummy(*id))
         .expect("get agent by id")
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const TEST_LOCATIONS: &str = r#"{
+        "Food": [
+          {"x": 19,"y": 19},
+          {"x": 19,"y": 18},
+          {"x": 18, "y": 19},
+          {"x": 18,"y": 18}
+        ],
+        "Water": [
+          {"x": 3,"y": 3},
+          {"x": 3,"y": 2},
+          {"x": 2,"y": 3},
+          {"x": 2,"y": 2}
+        ]
+      }"#;
+    #[test]
+    fn test_example_board() {
+        let _ = read_resource_locations(TEST_LOCATIONS);
+    }
 }

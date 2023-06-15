@@ -46,17 +46,18 @@ impl AgentRender for ForagerVis {
 
     /// Define the degrees in radians to rotate the texture by.
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
-        let action: Action;
-        if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
-            let agent_state = trader.forager.agent_state(**_state);
-            action = trader.forager.choose_action(&agent_state);
-        } else {
-            let forager = agent.as_any().downcast_ref::<Forager>().unwrap();
-            let agent_state = forager.agent_state(**_state);
-            action = forager.choose_action(&agent_state);
-        }
+        // let action: Action;
+        // if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
+        //     let agent_state = trader.forager.agent_state(**_state);
+        //     action = trader.forager.chose_action(_state, &agent_state);
+        // } else {
+        //     let forager = agent.as_any().downcast_ref::<Forager>().unwrap();
+        //     let agent_state = forager.agent_state(**_state);
+        //     action = forager.chose_action(&agent_state);
+        // }
 
-        action2rotation(action)
+        // action2rotation(action)
+        0.0
     }
 
     /// Specify the code to execute for each frame, for each agent.

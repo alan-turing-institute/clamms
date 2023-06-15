@@ -14,7 +14,7 @@ use toml;
 pub type ResourceAbundance = f32;
 
 /// Environment variable name for CLAMMS config file.
-const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
+pub const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
 
 lazy_static! {
     /// Lazy static reference to core configuration loaded from `clamms_config.toml`.
@@ -79,17 +79,33 @@ pub struct AgentConfig {
     pub FOOD_LOT_SIZE: u32,
     pub WATER_LOT_SIZE: u32,
     pub MAX_TRADE_LOTS: u32,
+    pub INVENTORY_LEVEL_CRITICAL_LOW: i32,
+    pub INVENTORY_LEVEL_LOW_MEDIUM: i32,
+    pub INVENTORY_LEVEL_MEDIUM_HIGH: i32,
 }
 
 /// Configuration variables for `trustchain-core` crate.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct WorldConfig {
     /// Config params for simulation world.
-    pub RANDOM_SEED: u32,
+    pub RANDOM_SEED: u64,
     pub FOOD_ABUNDANCE: f32,
     pub WATER_ABUNDANCE: f32,
     pub TREE_PROB: f32,
     pub SWEET_PROB: f32,
+    pub RESOURCE_LOCATIONS_FILE: Option<String>,
+    pub WIDTH: u16,
+    pub HEIGHT: u16,
+    pub N_AGENTS: u8,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct RLConfig {
+    pub INIT_Q_VALUES: f32,
+    pub SARSA_N: u8,
+    pub GAMMA: f32,
+    pub ALPHA: f32,
+    pub EPSILON: f32,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -103,6 +119,7 @@ pub struct Config {
     pub agent: AgentConfig,
     pub world: WorldConfig,
     pub trade: TradeConfig,
+    pub rl: RLConfig,
 }
 
 #[cfg(test)]
@@ -119,6 +136,15 @@ mod tests {
         WATER_ABUNDANCE = 0.1
         TREE_PROB = 0.1
         SWEET_PROB = 0.01
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+        N_AGENTS = 10
+        WIDTH = 10
+        HEIGHT = 10
+>>>>>>> main
+>>>>>>> main
 
         [agent]
         INIT_FOOD = 0

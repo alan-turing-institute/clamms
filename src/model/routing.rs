@@ -254,42 +254,42 @@ mod tests {
         assert!(result == Some(Direction::South) || result == Some(Direction::West));
     }
 
-    #[test]
-    fn test_get_traders() {
-        let dim: (u16, u16) = (10, 10);
-        let agent_grid: DenseGrid2D<Trader> = DenseGrid2D::new(dim.0.into(), dim.0.into());
+    // #[test]
+    // fn test_get_traders() {
+    //     let dim: (u16, u16) = (10, 10);
+    //     let agent_grid: DenseGrid2D<Trader> = DenseGrid2D::new(dim.0.into(), dim.0.into());
 
-        let mut positions: Vec<Int2D> = Vec::new();
-        positions.push(Int2D { x: 4, y: 8 });
-        positions.push(Int2D { x: 1, y: 2 });
+    //     let mut positions: Vec<Int2D> = Vec::new();
+    //     positions.push(Int2D { x: 4, y: 8 });
+    //     positions.push(Int2D { x: 1, y: 2 });
 
-        let mut id_counter = 0;
-        for p in positions {
-            let agent = Trader::new(Forager::new(
-                id_counter,
-                p,
-                core_config().agent.INIT_FOOD,
-                core_config().agent.INIT_WATER,
-            ));
-            agent_grid.set_object_location(agent, &agent.get_position());
-            id_counter += 1;
-        }
+    //     let mut id_counter = 0;
+    //     for p in positions {
+    //         let agent = Trader::new(Forager::new(
+    //             id_counter,
+    //             p,
+    //             core_config().agent.INIT_FOOD,
+    //             core_config().agent.INIT_WATER,
+    //         ));
+    //         agent_grid.set_object_location(agent, &agent.get_position());
+    //         id_counter += 1;
+    //     }
 
-        let mut board = Board::construct(
-            agent_grid,
-            DenseGrid2D::new(dim.0.into(), dim.1.into()),
-            2,
-            dim,
-        );
+    //     let mut board = Board::construct(
+    //         agent_grid,
+    //         DenseGrid2D::new(dim.0.into(), dim.1.into()),
+    //         2,
+    //         dim,
+    //     );
 
-        let result = get_traders(&mut board);
-        // assert_eq!(result, positions);
-        println!("{:?}", "here");
-        println!("{}", result.len());
-        for trader in result {
-            println!("{}", trader.id());
-        }
-    }
+    //     let result = get_traders(&mut board);
+    //     // assert_eq!(result, positions);
+    //     println!("{:?}", "here");
+    //     println!("{}", result.len());
+    //     for trader in result {
+    //         println!("{}", trader.id());
+    //     }
+    // }
     // #[test]
     // fn test_get_agent_locations() {
 
