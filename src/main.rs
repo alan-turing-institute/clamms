@@ -79,6 +79,7 @@ fn main() {
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
     use config::core_config;
+    use krabmaga::bevy::prelude::{App, Query, World};
     use model::board::Board;
 
     let num_agents = core_config().world.N_AGENTS;
@@ -97,10 +98,34 @@ fn main() {
     } else {
         Board::new_with_seed(dim, num_agents, seed, model)
     };
+    use crate::bevy::prelude::ResMut;
+    use krabmaga::engine::state::State;
+    use krabmaga::visualization::visualization_state::VisualizationState;
+    use krabmaga::visualization::wrappers::ActiveState;
+    fn update_model<
+        I: VisualizationState<S> + Clone + 'static + bevy::prelude::Resource,
+        S: State,
+    >(
+        active_state_wrapper: ResMut<ActiveState<S>>,
+    ) {
+        let mut mutex = active_state_wrapper.0.lock().expect("unwrapping state");
+
+        let state = mutex.as_any_mut().downcast_mut::<Board>().unwrap();
+        let i = state.step;
+        state.model.step(i as i32, &state.agent_histories);
+    }
+    // fn runner(mut app: App) {
+    //     for i in 0..100 {
+    //         app.update();
+    //     }
+    // }
     Visualization::default()
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
         .with_simulation_dimensions((dim.0 + 1).into(), (dim.1 + 1).into())
         .with_background_color(Color::GRAY)
         .with_name("Template")
-        .start::<BoardVis, Board>(BoardVis, state);
+        .setup::<BoardVis, Board>(BoardVis, state)
+        .add_system(update_model::<BoardVis, Board>)
+        // .set_runner(runner)
+        .run();
 }

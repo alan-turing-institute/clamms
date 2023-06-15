@@ -54,7 +54,7 @@ where
     }
 
     pub fn step(&mut self, t: i32, agent_hist: &HashMap<u32, History<T, S, L, A>>) {
-        let tau_: i32 = t - core_config().rl.SARSA_N as i32;
+        let tau_: i32 = t - core_config().rl.SARSA_N as i32 - 1;
 
         // do update
         if tau_ >= 0 {
