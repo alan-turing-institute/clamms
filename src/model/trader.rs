@@ -147,6 +147,10 @@ impl Policy for Trader {
     
     fn choose_action(&self, state: &dyn krabmaga::engine::state::State) -> Action {
         
+        // Forage unless making a non-trivial offer.
+        if self.offer().is_trivial() {
+            return self.forager.choose_action(state)
+        }
         // If another agent is closer than any resources, move towards them.
         let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state)).expect("Food source must exist");
         let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state)).expect("Water source must exist");
