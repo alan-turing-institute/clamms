@@ -37,7 +37,7 @@ pub enum Resource {
 impl Resource {
     pub fn texture(&self) -> String {
         match self {
-            Resource::Food => "tree".to_string(),
+            Resource::Food => "fruit".to_string(),
             Resource::Water => "water".to_string(),
         }
     }

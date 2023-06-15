@@ -19,7 +19,21 @@ impl AgentRender for TraderVis {
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
-        SpriteType::Emoji(String::from("crab"))
+        if let Some(trader) = _agent.downcast_ref::<Trader>() {
+            let agent_state = trader.forager.agent_state(**_state);
+            let action = trader.choose_action(&agent_state);
+
+            match action {
+                Action::ToAgent => SpriteType::Emoji(String::from("dino-orange")),
+                Action::ToFood => SpriteType::Emoji(String::from("dino-green")),
+                Action::ToWater => SpriteType::Emoji(String::from("dino-blue")),
+                Action::Stationary => SpriteType::Emoji(String::from("dino-white")),
+                // _ => SpriteType::Emoji(String::from("crab"))
+            }
+        } else {
+            panic!("Not a Trader!")
+        }
+        // SpriteType::Emoji(String::from("crab"))
     }
 
     /// Specify where the agent should be rendered in the window.

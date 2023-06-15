@@ -44,10 +44,10 @@ pub fn degree2radians(deg: f32) -> f32{
 
 pub fn action2rotation(action: Action) -> f32 {
     let degs = match action {
-        Action::ToAgent => 180.0,
+        Action::ToAgent => 0.0,
         Action::Stationary => 0.0,
-        Action::ToFood => 0.0,
-        Action::ToWater => 0.0
+        Action::ToFood => 20.0,
+        Action::ToWater => 340.0
     };
     degree2radians(degs)
 }
