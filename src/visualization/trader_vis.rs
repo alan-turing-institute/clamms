@@ -1,4 +1,6 @@
-use crate::model::{board::Board, trader::Trader};
+use crate::model::policy::Policy;
+use crate::model::{board::Board, trader::Trader, action::Action};
+use crate::config::degree2radians;
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::prelude::{Component, Quat, Transform, Visibility};
 use krabmaga::{
@@ -47,7 +49,24 @@ impl AgentRender for TraderVis {
 
     /// Define the degrees in radians to rotate the texture by.
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
-        0.0
+
+        let action: Action;
+        if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
+            let agent_state = trader.forager.agent_state(**_state);
+            action = trader.choose_action(&agent_state);
+        } else {
+            let forager  = agent.as_any().downcast_ref::<Forager>().unwrap();
+            let agent_state = forager.agent_state(**_state);
+            action = forager.choose_action(&agent_state);
+        } 
+
+        let degs = match action {
+            Action::ToAgent => 180.0,
+            Action::Stationary => 0.0,
+            Action::ToFood => 0.0,
+            Action::ToWater => 0.0
+        };
+        degree2radians(degs)
     }
 
     /// Specify the code to execute for each frame, for each agent.

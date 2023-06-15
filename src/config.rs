@@ -8,6 +8,7 @@ use std::fs;
 use toml;
 use regex::Regex;
 use std::path::Path;
+use std::f32::consts::PI;
 
 pub type ResourceAbundance = f32;
 
@@ -35,6 +36,11 @@ fn parse_toml(toml_str: &str) -> Result<Config, toml::de::Error> {
 pub fn core_config() -> &'static CORE_CONFIG {
     &CORE_CONFIG
 }
+
+pub fn degree2radians(deg: f32) -> f32{
+    deg * PI/180.0
+}
+
 
 /// Configuration variables for `trustchain-core` crate.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]

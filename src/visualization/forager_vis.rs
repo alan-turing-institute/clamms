@@ -1,5 +1,6 @@
 use crate::model::action::Action;
 use crate::model::policy::Policy;
+use crate::config::degree2radians;
 use std::f32::consts::PI;
 use crate::model::{board::Board, forager::Forager, trader::Trader};
 use krabmaga::bevy::ecs as bevy_ecs;
@@ -15,9 +16,6 @@ pub struct ForagerVis {
     pub(crate) id: u32,
 }
 
-fn degree2radians(deg: f32) -> f32{
-    deg * PI/180.0
-}
 
 
 impl AgentRender for ForagerVis {
@@ -28,7 +26,7 @@ impl AgentRender for ForagerVis {
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
-        SpriteType::Emoji(String::from("crab"))
+        SpriteType::Emoji(String::from("sweet"))
         // SpriteType::Emoji(String::from("Trade-and-market"))
     }
 
