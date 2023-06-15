@@ -1,7 +1,7 @@
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use std::{hash::{Hash, Hasher}};
 // use std::error::Error;
-use crate::config::core_config;
+use crate::{config::core_config, model::board::Board};
 use super::{inventory::Inventory, routing::{Position, Router, get_trader_locations, get_resource_locations}, forager::Forager, environment::Resource, policy::Policy, agent_state::AgentState, action::Action};
 
 
@@ -119,12 +119,25 @@ impl Trade for Trader {
     }
 }
 
-// impl Agent for Trader {
+impl Agent for Trader {
     
-//     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
-//         todo!()
-//     }
-// }
+    fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
+        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+
+        // select action from policy
+        let action = self.choose_action(state);
+
+        // route agent based on action
+        let route = match action {
+            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state, None),
+            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state, None),
+            Action::ToAgent => self.try_move_towards_agent(state, None),
+            _ => None,
+        };
+
+        todo!()
+    }
+}
 
 impl Policy for Trader {
 
@@ -153,6 +166,8 @@ impl Position for Trader {
         self.forager.pos.to_owned()
     }
 }
+
+impl Router for Trader {}
 
 impl Inventory for Trader {
     fn count(&self, resource: &Resource) -> i32 {

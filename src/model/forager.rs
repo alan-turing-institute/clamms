@@ -109,8 +109,8 @@ impl Agent for Forager {
 
         // route agent based on action
         let route = match action {
-            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state),
-            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state),
+            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state, None),
+            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state, None),
             _ => None,
         };
         if let Some(dir) = route {
@@ -191,19 +191,20 @@ impl Position for Forager {
 }
 
 impl Router for Forager {
-    fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction> {
-        // Downcast to get access to rng
-        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
-        match &self.find_nearest(resource, state, None) {
-            None => rand::random(),
-            Some(pos) => {
-                if pos.eq(&self.get_position()) {
-                    return None;
-                }
-                move_towards(&self.get_position(), pos, &mut state.rng)
-            }
-        }
-    }
+    // Moved to trait as default implementation:
+    // fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction> {
+    //     // Downcast to get access to rng
+    //     let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+    //     match &self.find_nearest(resource, state, None) {
+    //         None => rand::random(),
+    //         Some(pos) => {
+    //             if pos.eq(&self.get_position()) {
+    //                 return None;
+    //             }
+    //             move_towards(&self.get_position(), pos, &mut state.rng)
+    //         }
+    //     }
+    // }
 }
 
 // impl fmt::Display for Forager {

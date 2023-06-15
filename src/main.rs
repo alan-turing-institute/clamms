@@ -51,7 +51,7 @@ fn main() {
 fn main() {
     use model::board::Board;
 
-    let num_agents = 1;
+    let num_agents = 4;
     let dim: (u16, u16) = (20, 20);
 
     let state = Board::new(dim, num_agents);

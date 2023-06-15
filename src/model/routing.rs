@@ -15,39 +15,63 @@ use super::trader::Trader;
 pub trait Router: Position {
     
     /// Gets an appropriate direction of movement towards a specified resource.
-    fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State) -> Option<Direction>;
+    fn try_move_towards_resource(&self, resource: &Resource, state: &mut dyn State, horizon: Option<u32>) -> Option<Direction> {
+        self.try_move_towards(&self.find_nearest_resource(resource, state, horizon), state)
+    }
+
+    /// Gets an appropriate direction of movement towards the nearest agent.
+    fn try_move_towards_agent(&self, state: &mut dyn State, horizon: Option<u32>) -> Option<Direction> {
+        self.try_move_towards(&self.find_nearest_trader(state, horizon), state)
+    }
+
+    fn try_move_towards(&self, target: &Option<Int2D>, state: &mut dyn State) -> Option<Direction> {
+        // Downcast to get access to rng
+        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        match target {
+            None => rand::random(),
+            Some(pos) => {
+                if pos.eq(&self.get_position()) {
+                    return None;
+                }
+                move_towards(&self.get_position(), &pos, &mut state.rng)
+            }
+        }
+    }
+
+    /// Finds the nearest from a vector of coordinates.
+    fn find_nearest(
+        &self,
+        targets: &Vec<Int2D>,
+        horizon: Option<u32>,
+    ) -> Option<Int2D> {
+        let pos = &self.get_position();
+        if targets.is_empty() {
+            return None
+        }
+        let nearest = targets.iter().min_by_key(|x| step_distance(x, pos)).expect("Non-empty targets vector");
+        if let Some(h) = horizon {
+            if step_distance(nearest, pos) <= h {
+                return Some(nearest.to_owned())
+            } else {
+                return None
+            }
+        }
+        Some(nearest.to_owned())
+    }
 
     /// Finds the coordinates of the nearest specified resource.
-    fn find_nearest(
+    fn find_nearest_resource(
         &self,
         resource: &Resource,
         state: &dyn State,
-        horizon: Option<f32>,
+        horizon: Option<u32>
+        // horizon: Option<f32>,
     ) -> Option<Int2D> {
-        let state = state.as_any().downcast_ref::<Board>().unwrap();
-        let agent_pos = &self.get_position();
-        let mut nearest: Option<Int2D> = None;
+        self.find_nearest(&get_resource_locations(resource, state), horizon)
+    }
 
-        let resource_locations = state
-            .resource_locations
-            .get(resource)
-            .expect("HashMap initialised for all resource types");
-        for resource_pos in resource_locations {
-            if let Some(h) = horizon {
-                if sight_distance(agent_pos, resource_pos) > h {
-                    continue;
-                }
-            }
-            if let Some(nearest_pos) = nearest {
-                let dist = step_distance(agent_pos, resource_pos);
-                if dist < step_distance(agent_pos, &nearest_pos) {
-                    nearest = Some(resource_pos.to_owned());
-                }
-            } else {
-                nearest = Some(resource_pos.to_owned());
-            }
-        }
-        nearest
+    fn find_nearest_trader(&self, state: &dyn State, horizon: Option<u32>)  -> Option<Int2D> {
+        self.find_nearest(&get_trader_locations(state), horizon)
     }
 }
 
