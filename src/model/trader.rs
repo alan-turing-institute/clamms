@@ -122,10 +122,12 @@ impl Trade for Trader {
 impl Agent for Trader {
     
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
+
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        let agent_state = self.forager.agent_state(state);
 
         // select action from policy
-        let action = self.choose_action(state);
+        let action = self.choose_action(&agent_state);
 
         // route agent based on action
         let route = match action {
@@ -145,22 +147,23 @@ impl Policy for Trader {
         panic!("Use choose_action method instead!");
     }
     
-    fn choose_action(&self, state: &dyn krabmaga::engine::state::State) -> Action {
+    fn choose_action(&self, agent_state: &AgentState) -> Action {
         
         // Forage unless making a non-trivial offer.
         if self.offer().is_trivial() {
-            return self.forager.choose_action(state)
+            return self.forager.choose_action(agent_state)
         }
         // If another agent is closer than any resources, move towards them.
-        let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state)).expect("Food source must exist");
-        let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state)).expect("Water source must exist");
-        
-        if let Some(min_steps_to_trader) = self.min_steps_to(get_trader_locations(state)) {
-            if min_steps_to_trader < std::cmp::min(min_steps_to_food, min_steps_to_water) {
+        if let Some(min_steps_to_trader) = agent_state.min_steps_to_trader {
+            if agent_state.min_steps_to_food.is_none() || agent_state.min_steps_to_water.is_none() {
+                return Action::ToAgent
+            }
+            if min_steps_to_trader < std::cmp::min(agent_state.min_steps_to_food.unwrap(), agent_state.min_steps_to_water.unwrap()) {
                 return Action::ToAgent
             }
         }
-        self.forager.choose_action(state)
+        //  Otherwise forage.
+        self.forager.choose_action(agent_state)
     }
 }
 

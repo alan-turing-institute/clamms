@@ -5,7 +5,7 @@ use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
 use crate::config::core_config;
-use super::routing::{Router, Position, move_towards};
+use super::routing::{Router, Position, move_towards, get_resource_locations, get_trader_locations};
 use super::policy::Policy;
 use super::reward::Reward;
 use krabmaga::engine::fields::field_2d::Location2D;
@@ -71,6 +71,7 @@ impl Inventory for Forager {
 }
 
 impl Policy for Forager {
+    // Deprecated:
     fn chose_action(&self, agent_state: &AgentState) -> Action {
         if agent_state.food < agent_state.water {
             Action::ToFood
@@ -79,8 +80,12 @@ impl Policy for Forager {
         }
     }
 
-    fn choose_action(&self, state: &dyn State) -> Action {
-        self.chose_action(&self.agent_state())
+    fn choose_action(&self, agent_state: &AgentState) -> Action {
+        if agent_state.food < agent_state.water {
+            Action::ToFood
+        } else {
+            Action::ToWater
+        }
     }
 }
 
@@ -90,27 +95,30 @@ impl Agent for Forager {
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
 
         // observe current agent state
-        let agent_state = self.agent_state();
+        let agent_state = self.agent_state(state);
         // let agent_state = AgentState {
         //     food: self.food,
         //     water: self.water,
         //     // TODO: placeholder waiting for routing work
         //     // food_dist: 0,
         //     // water_dist: 0,
-        //     // last_action: state
-        //     //     .agent_histories
-        //     //     .get(&self.id)
-        //     //     .expect("HashMap initialised for all agents")
-        //     //     .last_action(),
+            // last_action: state
+            //     .agent_histories
+            //     .get(&self.id)
+            //     .expect("HashMap initialised for all agents")
+            //     .last_action(),
         // };
+        
+        // Select action from policy
+        let action = self.choose_action(&agent_state);
 
-        // select action from policy
-        let action = self.chose_action(&agent_state);
+        // TODO: make the rest available for the Trader to call:
 
         // route agent based on action
         let route = match action {
             Action::ToFood => self.try_move_towards_resource(&Resource::Food, state, None),
             Action::ToWater => self.try_move_towards_resource(&Resource::Water, state, None),
+            Action::ToAgent => self.try_move_towards_agent(state, None),
             _ => None,
         };
         if let Some(dir) = route {
@@ -244,10 +252,25 @@ impl Forager {
         self.id
     }
 
-    pub fn agent_state(&self) -> AgentState {
+    pub fn agent_state(&self, state: &mut dyn krabmaga::engine::state::State) -> AgentState {
+
+        let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state));
+        let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state));
+
+        let min_steps_to_trader = self.min_steps_to(get_trader_locations(state));
+
         AgentState {
             food: self.food,
             water: self.water,
+            min_steps_to_food,
+            min_steps_to_water,
+            min_steps_to_trader,
+            // TODO: placeholder waiting for routing work
+            // last_action: state
+            //     .agent_histories
+            //     .get(&self.id)
+            //     .expect("HashMap initialised for all agents")
+            //     .last_action(),
         }
     }
 
