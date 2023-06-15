@@ -80,6 +80,28 @@ pub fn read_resource_locations(input: &str) -> BTreeMap<Resource, Vec<Int2D>> {
         .collect()
 }
 
+pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
+    let mut map = BTreeMap::new();
+    map.insert(Resource::Food, vec![]);
+    map.insert(Resource::Water, vec![]);
+    for i in 1..7 {
+        for j in 1..7 {
+            let v = map.get_mut(&Resource::Food).unwrap();
+            v.push(ClammsInt2D { x: i, y: j });
+        }
+    }
+    for i in (dim.0 / 2 - 2)..=(dim.0 / 2 + 2) {
+        for j in 1..dim.1 {
+            let v = map.get_mut(&Resource::Water).unwrap();
+            v.push(ClammsInt2D {
+                x: i.into(),
+                y: j.into(),
+            });
+        }
+    }
+    map
+}
+
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
@@ -283,7 +305,14 @@ mod tests {
         ]
       }"#;
     #[test]
-    fn test_example_board() {
+    fn test_read_resources() {
         let _ = read_resource_locations(TEST_LOCATIONS);
+    }
+    #[test]
+    fn test_example_board() {
+        println!(
+            "{}",
+            serde_json::to_string(&example_board((42, 42))).unwrap()
+        );
     }
 }
