@@ -1,7 +1,10 @@
 use crate::config::{core_config, CLAMMS_CONFIG};
 
+use super::action::Action;
+use super::agent_state::{AgentState, AgentStateItems, InvLevel};
 use super::environment::Resource;
 use super::history::History;
+use super::tabular_rl::SARSAModel;
 use super::{environment::EnvItem, forager::Forager};
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
@@ -83,14 +86,20 @@ pub struct Board {
     pub agent_grid: DenseGrid2D<Forager>,
     pub dim: (u16, u16),
     pub num_agents: u8,
-    pub agent_histories: HashMap<u32, History>,
+    pub agent_histories: HashMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
+    // TODO: consider refactor to BTreeMap if issues occur around deterministic iteration
     pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
     pub rng: StdRng,
+    pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     pub loaded_map: bool,
 }
 
 impl Board {
-    pub fn new(dim: (u16, u16), num_agents: u8) -> Board {
+    pub fn new(
+        dim: (u16, u16),
+        num_agents: u8,
+        model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+    ) -> Board {
         Board {
             step: 0,
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
@@ -100,10 +109,16 @@ impl Board {
             agent_histories: HashMap::new(),
             resource_locations: BTreeMap::new(),
             rng: StdRng::from_entropy(),
+            model,
             loaded_map: false,
         }
     }
-    pub fn new_with_seed(dim: (u16, u16), num_agents: u8, seed: u64) -> Board {
+    pub fn new_with_seed(
+        dim: (u16, u16),
+        num_agents: u8,
+        seed: u64,
+        model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+    ) -> Board {
         Board {
             step: 0,
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
@@ -113,6 +128,7 @@ impl Board {
             agent_histories: HashMap::new(),
             resource_locations: BTreeMap::new(),
             rng: StdRng::seed_from_u64(seed),
+            model,
             loaded_map: false,
         }
     }
@@ -121,6 +137,7 @@ impl Board {
         num_agents: u8,
         seed: u64,
         map_locations: &str,
+        model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     ) -> Board {
         let path =
             std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join(map_locations);
@@ -135,6 +152,7 @@ impl Board {
             resource_locations,
             rng: StdRng::seed_from_u64(seed),
             loaded_map: true,
+            model,
         }
     }
 }

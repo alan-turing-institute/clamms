@@ -1,5 +1,5 @@
 use super::action::Action;
-use super::agent_state::AgentState;
+use super::agent_state::{AgentState, DiscrRep};
 use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
@@ -70,17 +70,21 @@ impl Inventory for Forager {
 }
 
 impl Policy for Forager {
-    fn chose_action(&self, agent_state: &AgentState) -> Action {
-        if agent_state.food < agent_state.water {
-            Action::ToFood
-        } else {
-            Action::ToWater
-        }
+    fn chose_action(&self, state: &mut dyn State, agent_state: &AgentState) -> Action {
+        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        state
+            .model
+            .sample_action_by_id(self.id, &agent_state.representation(), &mut state.rng)
+        // if agent_state.food < agent_state.water {
+        //     Action::ToFood
+        // } else {
+        //     Action::ToWater
+        // }
     }
 }
 
 impl Agent for Forager {
-    fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
+    fn step(&mut self, state: &mut dyn State) {
         // now downcasting to a mutable reference
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
 
@@ -99,7 +103,7 @@ impl Agent for Forager {
         };
 
         // select action from policy
-        let action = self.chose_action(&agent_state);
+        let action = self.chose_action(state, &agent_state);
 
         // route agent based on action
         let route = match action {
@@ -155,16 +159,16 @@ impl Agent for Forager {
                 Reward::from_inv_count_linear(self.food, self.water),
             ));
 
-        if self.id == 0 {
-            println!(
-                "agent: {:?}, food: {:?}, water: {:?}, act: {:?}, pos: {}",
-                self.id,
-                self.food,
-                self.water,
-                action,
-                self.get_position()
-            );
-        }
+        // if self.id == 0 {
+        //     println!(
+        //         "agent: {:?}, food: {:?}, water: {:?}, act: {:?}, pos: {}",
+        //         self.id,
+        //         self.food,
+        //         self.water,
+        //         action,
+        //         self.get_position()
+        //     );
+        // }
     }
 }
 

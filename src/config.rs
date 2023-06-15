@@ -60,6 +60,9 @@ pub struct AgentConfig {
     pub WATER_CONSUME_RATE: u32,
     pub FOOD_MAX_INVENTORY: i32,
     pub WATER_MAX_INVENTORY: i32,
+    pub INVENTORY_LEVEL_CRITICAL_LOW: i32,
+    pub INVENTORY_LEVEL_LOW_MEDIUM: i32,
+    pub INVENTORY_LEVEL_MEDIUM_HIGH: i32,
 }
 
 /// Configuration variables for `trustchain-core` crate.
@@ -77,12 +80,22 @@ pub struct WorldConfig {
     pub N_AGENTS: u8,
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct RLConfig {
+    pub INIT_Q_VALUES: f32,
+    pub SARSA_N: u8,
+    pub GAMMA: f32,
+    pub ALPHA: f32,
+    pub EPSILON: f32,
+}
+
 /// Wrapper struct for parsing the `core` table.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Config {
     /// Core configuration data.
     pub agent: AgentConfig,
     pub world: WorldConfig,
+    pub rl: RLConfig,
 }
 
 #[cfg(test)]
@@ -99,9 +112,12 @@ mod tests {
         WATER_ABUNDANCE = 0.1
         TREE_PROB = 0.1
         SWEET_PROB = 0.01
+<<<<<<< HEAD
+=======
         N_AGENTS = 10
         WIDTH = 10
         HEIGHT = 10
+>>>>>>> main
 
         [agent]
         INIT_FOOD = 0
