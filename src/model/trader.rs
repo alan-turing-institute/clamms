@@ -239,10 +239,6 @@ impl Agent for Trader {
 
 impl Policy for Trader {
 
-    fn chose_action(&self, agent_state: &AgentState) -> Action {
-        panic!("Use choose_action method instead!");
-    }
-    
     fn choose_action(&self, agent_state: &AgentState) -> Action {
         
         // Forage unless making a non-trivial offer.

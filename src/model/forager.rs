@@ -72,14 +72,6 @@ impl Inventory for Forager {
 }
 
 impl Policy for Forager {
-    // Deprecated:
-    fn chose_action(&self, agent_state: &AgentState) -> Action {
-        if agent_state.food < agent_state.water {
-            Action::ToFood
-        } else {
-            Action::ToWater
-        }
-    }
 
     fn choose_action(&self, agent_state: &AgentState) -> Action {
         if agent_state.food < agent_state.water {
