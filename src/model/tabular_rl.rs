@@ -92,28 +92,28 @@ where
         }
     }
 
-    pub fn get_table_by_id_mut(&mut self, id: u32) -> &mut HashMap<(((S, L), (S, L)), A), f32> {
+    pub fn get_table_by_id_mut(&mut self, id: u32) -> &mut HashMap<(Vec<(S, L)>, A), f32> {
         self.q_tbls
             .get_mut(&id)
             .expect("qtable was initialised for all agent id's")
             .get_tab_mut()
     }
 
-    pub fn get_table_by_id(&self, id: u32) -> &HashMap<(((S, L), (S, L)), A), f32> {
+    pub fn get_table_by_id(&self, id: u32) -> &HashMap<(Vec<(S, L)>, A), f32> {
         self.q_tbls
             .get(&id)
             .expect("qtable was initialised for all agent id's")
             .get_tab()
     }
 
-    pub fn sample_action_by_id(&self, id: u32, state: &((S, L), (S, L)), rng: &mut StdRng) -> A {
+    pub fn sample_action_by_id(&self, id: u32, state: &Vec<(S, L)>, rng: &mut StdRng) -> A {
         let (a, q_optimal) = self
             .q_tbls
             .get(&id)
             .expect("qtable was initialised for all agent id's")
             .sample_action(state, rng);
         if id == 0 {
-            println!("{}", q_optimal)
+            // println!("{}", q_optimal)
         }
         a
     }

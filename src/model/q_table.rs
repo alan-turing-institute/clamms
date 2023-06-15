@@ -10,7 +10,7 @@ use crate::config::core_config;
 
 #[derive(Debug)]
 pub struct QTable<S, L, A> {
-    pub tab: HashMap<(((S, L), (S, L)), A), f32>,
+    pub tab: HashMap<(Vec<(S, L)>, A), f32>,
 }
 
 impl<S, L, A> QTable<S, L, A>
@@ -30,33 +30,22 @@ where
             combs_for_all_state_items.push(levels_for_item);
         }
 
-        // let product: Vec<Vec<(S, L)>> = combs_for_all_state_items
-        //     .remove(0)
-        //     .clone()
-        //     .into_iter()
-        //     .cartesian_product(combs_for_all_state_items.remove(0))
-        //     .into_iter()
-        //     .map(|t| t.to_vec())
-        //     .collect();
-
-        // for i in 0..combs_for_all_state_items.len() - 2 {
-        //     for p in product {
-        //         p.iter()
-        //             .cartesian_product(combs_for_all_state_items[i])
-        //             .into_iter()
-        //             .map(|t| t.to_vec())
-        //             .collect()
-        //     }
-        // }
-
-        let manual = combs_for_all_state_items[0]
+        let combs = combs_for_all_state_items
             .clone()
             .into_iter()
-            .cartesian_product(combs_for_all_state_items[1].clone())
-            .into_iter()
+            .multi_cartesian_product()
             .collect_vec();
 
-        let q = manual
+        // println!("{:?}", combs);
+
+        // let manual = combs_for_all_state_items[0]
+        //     .clone()
+        //     .into_iter()
+        //     .cartesian_product(combs_for_all_state_items[1].clone())
+        //     .into_iter()
+        //     .collect_vec();
+
+        let q = combs
             .into_iter()
             .cartesian_product(actions)
             .into_iter()
@@ -70,14 +59,14 @@ where
         QTable { tab: q_tbl }
     }
 
-    pub fn get_tab_mut(&mut self) -> &mut HashMap<(((S, L), (S, L)), A), f32> {
+    pub fn get_tab_mut(&mut self) -> &mut HashMap<(Vec<(S, L)>, A), f32> {
         &mut self.tab
     }
-    pub fn get_tab(&self) -> &HashMap<(((S, L), (S, L)), A), f32> {
+    pub fn get_tab(&self) -> &HashMap<(Vec<(S, L)>, A), f32> {
         &self.tab
     }
 
-    pub fn sample_action(&self, state: &((S, L), (S, L)), rng: &mut StdRng) -> (A, f32) {
+    pub fn sample_action(&self, state: &Vec<(S, L)>, rng: &mut StdRng) -> (A, f32) {
         let mut optimal_a: A = self.pick_rnd(rng);
         let mut q_optimal = self
             .get_tab()
@@ -116,5 +105,30 @@ where
             a = a_iter.next().unwrap();
         }
         a
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::agent_state::InvLevel;
+
+    #[test]
+    fn test_multi_product() {
+        let combs = vec![
+            vec![
+                InvLevel::Critical,
+                InvLevel::Low,
+                InvLevel::Medium,
+                InvLevel::High,
+            ];
+            3
+        ]
+        .clone()
+        .into_iter()
+        .multi_cartesian_product()
+        .collect_vec();
+        // Should be: 4 ** 3 with each position taking all possible variants of the enum
+        assert_eq!(combs.len(), 64)
     }
 }
