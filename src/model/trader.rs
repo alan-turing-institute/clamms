@@ -11,7 +11,7 @@ use crate::engine::fields::grid_option::GridOption;
 
 #[derive(Clone, Copy)]
 pub struct Trader { 
-    forager: Forager
+    pub forager: Forager
 }
 
 impl Trader {

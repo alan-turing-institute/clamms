@@ -1,4 +1,7 @@
-use crate::model::{board::Board, forager::Forager};
+use crate::model::action::Action;
+use crate::model::policy::Policy;
+use std::f32::consts::PI;
+use crate::model::{board::Board, forager::Forager, trader::Trader};
 use krabmaga::bevy::ecs as bevy_ecs;
 use krabmaga::bevy::prelude::{Component, Quat, Transform, Visibility};
 use krabmaga::{
@@ -6,17 +9,27 @@ use krabmaga::{
     visualization::agent_render::{AgentRender, SpriteType},
 };
 
+
 #[derive(Component)]
 pub struct ForagerVis {
     pub(crate) id: u32,
 }
 
+fn degree2radians(deg: f32) -> f32{
+    deg * PI/180.0
+}
+
+
 impl AgentRender for ForagerVis {
+    // let icon_hungry = SpriteType::Emoji(String::from("crab"));
+    // let icon_thirsty = SpriteType::Emoji(String::from("crab"));
+    
     /// Specify the assets to use. Swap "bird" with the file name of whatever emoji you want to use.
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
-        SpriteType::Emoji(String::from("crab"))
+        // SpriteType::Emoji(String::from("crab"))
+        SpriteType::Emoji(String::from("Trade-and-market"))
     }
 
     /// Specify where the agent should be rendered in the window.
@@ -36,9 +49,28 @@ impl AgentRender for ForagerVis {
         (0.016, 0.016)
     }
 
+
     /// Define the degrees in radians to rotate the texture by.
     fn rotation(&self, agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> f32 {
-        0.0
+
+        let action: Action;
+        if let Some(trader) = agent.as_any().downcast_ref::<Trader>() {
+            let agent_state = trader.forager.agent_state(**_state);
+            action = trader.choose_action(&agent_state);
+        } else {
+            let forager  = agent.as_any().downcast_ref::<Forager>().unwrap();
+            let agent_state = forager.agent_state(**_state);
+            action = forager.choose_action(&agent_state);
+        } 
+
+        let degs = match action {
+            Action::ToAgent => 180.0,
+            Action::Stationary => 0.0,
+            Action::ToFood => 45.0,
+            Action::ToWater => 315.0
+        };
+        degree2radians(degs)
+
     }
 
     /// Specify the code to execute for each frame, for each agent.
