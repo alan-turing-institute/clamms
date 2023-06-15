@@ -82,6 +82,9 @@ pub struct AgentConfig {
     pub INVENTORY_LEVEL_CRITICAL_LOW: i32,
     pub INVENTORY_LEVEL_LOW_MEDIUM: i32,
     pub INVENTORY_LEVEL_MEDIUM_HIGH: i32,
+    pub DISTANCE_LEVEL_CRITICAL_LOW: u32,
+    pub DISTANCE_LEVEL_LOW_MEDIUM: u32,
+    pub DISTANCE_LEVEL_MEDIUM_HIGH: u32,
 }
 
 /// Configuration variables for `trustchain-core` crate.
