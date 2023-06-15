@@ -3,27 +3,39 @@
 //! Core configuration types and utilities.
 use lazy_static::lazy_static;
 // use rand::Error;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use toml;
-use regex::Regex;
 use std::path::Path;
+use toml;
 
 pub type ResourceAbundance = f32;
 
 /// Environment variable name for CLAMMS config file.
-const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
+pub const CLAMMS_CONFIG: &str = "CLAMMS_CONFIG";
 
 lazy_static! {
     /// Lazy static reference to core configuration loaded from `clamms_config.toml`.
     pub static ref CORE_CONFIG: Config = open_config_file(Path::new(std::env::var(CLAMMS_CONFIG).unwrap().as_str()));
 }
 
-fn open_config_file(path: &Path) -> Config{
+fn open_config_file(path: &Path) -> Config {
     parse_toml(
-        &fs::read_to_string(path)
-        .expect(format!("Unable to find the file {}. Please check the path is correct and this file exists", CLAMMS_CONFIG).as_str()))
-        .expect(format!("Unable to read the file {}. Please check the contents of this file.", CLAMMS_CONFIG).as_str())
+        &fs::read_to_string(path).expect(
+            format!(
+                "Unable to find the file {}. Please check the path is correct and this file exists",
+                CLAMMS_CONFIG
+            )
+            .as_str(),
+        ),
+    )
+    .expect(
+        format!(
+            "Unable to read the file {}. Please check the contents of this file.",
+            CLAMMS_CONFIG
+        )
+        .as_str(),
+    )
 }
 
 /// Parses and returns core configuration.
@@ -54,11 +66,15 @@ pub struct AgentConfig {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct WorldConfig {
     /// Config params for simulation world.
-    pub RANDOM_SEED: u32,
+    pub RANDOM_SEED: u64,
     pub FOOD_ABUNDANCE: f32,
     pub WATER_ABUNDANCE: f32,
     pub TREE_PROB: f32,
     pub SWEET_PROB: f32,
+    pub RESOURCE_LOCATIONS_FILE: Option<String>,
+    pub WIDTH: u16,
+    pub HEIGHT: u16,
+    pub N_AGENTS: u8,
 }
 
 /// Wrapper struct for parsing the `core` table.
@@ -78,12 +94,15 @@ mod tests {
         let config_string = r##"
         [world]
         RANDOM_SEED = 123
-        
+
         FOOD_ABUNDANCE = 0.1
         WATER_ABUNDANCE = 0.1
         TREE_PROB = 0.1
         SWEET_PROB = 0.01
-        
+        N_AGENTS = 10
+        WIDTH = 10
+        HEIGHT = 10
+
         [agent]
         INIT_FOOD = 0
         INIT_WATER = 0
@@ -117,7 +136,7 @@ mod tests {
         bar = 123
         "##;
 
-        lazy_static!{
+        lazy_static! {
             static ref RE: Regex = Regex::new(r"missing field").unwrap();
         }
 

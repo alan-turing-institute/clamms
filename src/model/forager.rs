@@ -4,11 +4,10 @@ use super::board::Board;
 use super::environment::{EnvItem, Resource};
 use super::history::SAR;
 use super::inventory::Inventory;
-use crate::config::core_config;
-use super::routing::{Router, Position, move_towards};
 use super::policy::Policy;
 use super::reward::Reward;
-use krabmaga::engine::fields::field_2d::Location2D;
+use super::routing::{move_towards, Position, Router};
+use crate::config::core_config;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
@@ -190,7 +189,7 @@ impl Router for Forager {
         // Downcast to get access to rng
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
         match &self.find_nearest(resource, state, None) {
-            None => rand::random(),
+            None => state.rng.gen(),
             Some(pos) => {
                 if pos.eq(&self.get_position()) {
                     return None;
