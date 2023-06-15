@@ -1,3 +1,5 @@
+use std::arch::aarch64::ST;
+
 use crate::model::policy::Policy;
 use crate::model::{board::Board, trader::Trader, action::Action};
 use crate::config::action2rotation;
@@ -22,6 +24,12 @@ impl AgentRender for TraderVis {
         if let Some(trader) = _agent.downcast_ref::<Trader>() {
             let agent_state = trader.forager.agent_state(**_state);
             let action = trader.choose_action(&agent_state);
+
+            // let state = *_state.as_ref();
+            let state = _state.as_any_mut().downcast_mut::<Board>().unwrap();
+            if let Some(history) = state.agent_histories.get(&trader.id()) {
+                history.last_action();
+            }
 
             match action {
                 Action::ToAgent => SpriteType::Emoji(String::from("dino-orange")),
