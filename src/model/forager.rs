@@ -137,7 +137,7 @@ impl Agent for Forager {
         // if now on a resource, gather the resource
         let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
         match item {
-            EnvItem::Land => {}
+            EnvItem::Land | EnvItem::Bush => {}
             EnvItem::Resource(Resource::Food) => {
                 self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
             }

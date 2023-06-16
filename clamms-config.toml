@@ -1,12 +1,14 @@
 [world]
 RANDOM_SEED = 0
 
-FOOD_ABUNDANCE = 0.02
-WATER_ABUNDANCE = 0.01
+LAND_PROP = 0.7
+FOOD_ABUNDANCE = 0.1
+WATER_ABUNDANCE = 0.1
 TREE_PROB = 0.1
 SWEET_PROB = 0.01
-RESOURCE_LOCATIONS_FILE = "resource_locations.json"
-# RESOURCE_LOCATIONS_FILE = "resource_locations_bigger.json"
+# RESOURCE_LOCATIONS_FILE = "resource_locations.json"
+RESOURCE_LOCATIONS_FILE = "resource_locations_bigger.json"
+# RESOURCE_LOCATIONS_FILE = "resource_locations_river.json"
 WIDTH = 42
 HEIGHT = 42
 N_AGENTS = 10

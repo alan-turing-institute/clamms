@@ -86,6 +86,31 @@ pub fn read_resource_locations(input: &str) -> BTreeMap<Resource, Vec<Int2D>> {
         .collect()
 }
 
+pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
+    let mut map = BTreeMap::new();
+    map.insert(Resource::Food, vec![]);
+    map.insert(Resource::Water, vec![]);
+    for i in 1..7 {
+        for j in 1..7 {
+            let v = map.get_mut(&Resource::Food).unwrap();
+            v.push(ClammsInt2D { x: i, y: j });
+        }
+    }
+    let mut rng = StdRng::seed_from_u64(1);
+    let mut river_width = 0i32;
+    for j in 1..dim.1 {
+        river_width += rng.gen_range(-2..=2);
+        for i in (dim.0 / 2 - 2)..=(dim.0 / 2 + 2) {
+            let v = map.get_mut(&Resource::Water).unwrap();
+            v.push(ClammsInt2D {
+                x: (i as i32 - 2 + river_width).into(),
+                y: j.into(),
+            });
+        }
+    }
+    map
+}
+
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
@@ -236,8 +261,10 @@ impl State for Board {
                 let item = if let Some(resource_lookup) = resource_lookup.as_ref() {
                     if let Some(resource) = resource_lookup.get(&pos) {
                         EnvItem::Resource(*resource)
-                    } else {
+                    } else if self.rng.gen::<f32>() < core_config().world.LAND_PROP {
                         EnvItem::Land
+                    } else {
+                        EnvItem::Bush
                     }
                 } else {
                     self.rng.gen()
@@ -444,7 +471,14 @@ mod tests {
         ]
       }"#;
     #[test]
-    fn test_example_board() {
+    fn test_read_resources() {
         let _ = read_resource_locations(TEST_LOCATIONS);
+    }
+    #[test]
+    fn test_example_board() {
+        println!(
+            "{}",
+            serde_json::to_string(&example_board((42, 42))).unwrap()
+        );
     }
 }
