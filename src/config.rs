@@ -70,6 +70,7 @@ pub struct AgentConfig {
 pub struct WorldConfig {
     /// Config params for simulation world.
     pub RANDOM_SEED: u64,
+    pub LAND_PROP: f32,
     pub FOOD_ABUNDANCE: f32,
     pub WATER_ABUNDANCE: f32,
     pub TREE_PROB: f32,

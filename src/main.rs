@@ -123,7 +123,7 @@ fn main() {
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
         .with_simulation_dimensions((dim.0 + 1).into(), (dim.1 + 1).into())
         .with_background_color(Color::GRAY)
-        .with_name("Template")
+        .with_name("CLAMMs")
         .setup::<BoardVis, Board>(BoardVis, state)
         .add_system(update_model::<BoardVis, Board>)
         // .set_runner(runner)
