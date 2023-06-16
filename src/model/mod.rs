@@ -10,3 +10,4 @@ pub mod q_table;
 pub mod reward;
 pub mod routing;
 pub mod tabular_rl;
+pub mod trader;

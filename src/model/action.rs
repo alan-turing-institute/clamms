@@ -9,6 +9,7 @@ use strum_macros::EnumIter;
 pub enum Action {
     ToFood,
     ToWater,
+    ToAgent,
     Stationary,
 }
 

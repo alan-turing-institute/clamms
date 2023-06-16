@@ -3,8 +3,10 @@
 //! Core configuration types and utilities.
 use lazy_static::lazy_static;
 // use rand::Error;
+use crate::model::action::Action;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::f32::consts::PI;
 use std::fs;
 use std::path::Path;
 use toml;
@@ -48,6 +50,20 @@ pub fn core_config() -> &'static CORE_CONFIG {
     &CORE_CONFIG
 }
 
+pub fn degree2radians(deg: f32) -> f32 {
+    deg * PI / 180.0
+}
+
+pub fn action2rotation(action: Action) -> f32 {
+    let degs = match action {
+        Action::ToAgent => 180.0,
+        Action::Stationary => 0.0,
+        Action::ToFood => 0.0,
+        Action::ToWater => 0.0,
+    };
+    degree2radians(degs)
+}
+
 /// Configuration variables for `trustchain-core` crate.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct AgentConfig {
@@ -60,9 +76,15 @@ pub struct AgentConfig {
     pub WATER_CONSUME_RATE: u32,
     pub FOOD_MAX_INVENTORY: i32,
     pub WATER_MAX_INVENTORY: i32,
+    pub FOOD_LOT_SIZE: u32,
+    pub WATER_LOT_SIZE: u32,
+    pub MAX_TRADE_LOTS: u32,
     pub INVENTORY_LEVEL_CRITICAL_LOW: i32,
     pub INVENTORY_LEVEL_LOW_MEDIUM: i32,
     pub INVENTORY_LEVEL_MEDIUM_HIGH: i32,
+    pub DISTANCE_LEVEL_CRITICAL_LOW: u32,
+    pub DISTANCE_LEVEL_LOW_MEDIUM: u32,
+    pub DISTANCE_LEVEL_MEDIUM_HIGH: u32,
 }
 
 /// Configuration variables for `trustchain-core` crate.
@@ -90,12 +112,17 @@ pub struct RLConfig {
     pub EPSILON: f32,
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct TradeConfig {
+    pub MAX_TRADE_DISTANCE: u32,
+}
 /// Wrapper struct for parsing the `core` table.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Config {
     /// Core configuration data.
     pub agent: AgentConfig,
     pub world: WorldConfig,
+    pub trade: TradeConfig,
     pub rl: RLConfig,
 }
 
@@ -115,9 +142,12 @@ mod tests {
         SWEET_PROB = 0.01
 <<<<<<< HEAD
 =======
+<<<<<<< HEAD
+=======
         N_AGENTS = 10
         WIDTH = 10
         HEIGHT = 10
+>>>>>>> main
 >>>>>>> main
 
         [agent]
@@ -129,6 +159,9 @@ mod tests {
         WATER_CONSUME_RATE = 1
         FOOD_MAX_INVENTORY = 456
         WATER_MAX_INVENTORY = 1
+        FOOD_LOT_SIZE = 6
+        WATER_LOT_SIZE = 2
+        MAX_TRADE_LOTS = 1
         "##;
 
         let config: Config = parse_toml(config_string).unwrap();
