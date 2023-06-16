@@ -35,6 +35,8 @@ pub fn forward_pass(x1: Tensor, x2: Tensor, y: Tensor) -> (Tensor, Tensor) {
 
     // LSTM layer initialisation
     // Varstore, input size, number of hidden units, config
+    // Input size should be equal to number of features
+    // Config for RNNs is here: https://docs.rs/tch/latest/tch/nn/struct.RNNConfig.html
     let lstm = nn::lstm(vs.root(), INPUT_SIZE, LSTM_SIZE, Default::default());
 
     // MLP
@@ -48,9 +50,11 @@ pub fn forward_pass(x1: Tensor, x2: Tensor, y: Tensor) -> (Tensor, Tensor) {
 
     // Set up Adam optimizer - not necessary for forward pass
     //let mut opt = nn::Adam::default().build(&vs, LEARNING_RATE);
+    //println!("{:?}", x.size());
 
     // Forward pass
     let (lstm_out, _) = lstm.seq(&x.to_device(device));
+    //println!("LSTM pass done");
     let l1 = basic_linear.forward(&lstm_out).relu(); 
     let l2 = basic_linear.forward(&lstm_out).relu();
     let policy_out = linear_policy.forward(&l1).softmax(-1, Kind::Float);
@@ -62,28 +66,35 @@ pub fn forward_pass(x1: Tensor, x2: Tensor, y: Tensor) -> (Tensor, Tensor) {
 #[cfg(test)]
 mod tests {
     use crate::model::{utils::encode_batch, 
-        action::Action, 
+        action::{Action, encode_vec_of_actions}, 
         agent_state::{AgentState, encode_vec_of_states}, 
         reward::Reward};
 
     use super::*;
 
     #[test]
-    fn test_fp_output() { // Currently fails due to x1 and x2 not being the same size
+    fn test_fp_output() {
         
         // Create Action
-        let enc_action = encode_batch(&[Action::ToFood.encode()]);
+        // Currently (1, 1, 3)
+        let enc_action = encode_vec_of_actions(&[Action::ToFood]);
+        let enc_action_batch = encode_batch(&[enc_action]);
 
         // Create AgentState
+        // Currently (1, 1, 2)
         let v = vec![AgentState {food: 25, water: 7}];
         let a = encode_vec_of_states(&v);
         let enc_agent_state = encode_batch(&[a]);
 
         // Create Reward
+        // Currently (1, 1)
         let r = Reward::new(52);
         let enc_reward = encode_batch(&[r.encode()]);
 
-        let (policy, reward) = forward_pass(enc_action, enc_agent_state, enc_reward);
+        let (policy, reward) = forward_pass(enc_action_batch, enc_agent_state, enc_reward);
+
+        println!("{}", policy);
+        println!("{}", reward);
 
     }
      

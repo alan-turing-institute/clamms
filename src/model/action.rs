@@ -21,6 +21,12 @@ impl Action {
     } 
 }
 
+/// Encodes a slice of `Action` to a Tensor.
+pub fn encode_vec_of_actions(v: &[Action]) -> Tensor {
+    let v: Vec<Tensor> = v.into_iter().map(|action| action.encode()).collect();
+    Tensor::stack(&v, 0)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::model::utils::encode_batch;
