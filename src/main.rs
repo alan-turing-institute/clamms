@@ -1,4 +1,7 @@
-use krabmaga::*;
+use std::collections::BTreeMap;
+
+use krabmaga::{engine::location::Int2D, hashbrown::HashSet, *};
+use model::environment::Resource;
 mod config;
 mod model;
 
@@ -15,16 +18,23 @@ mod visualization;
 // Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
-    use crate::model::board::Board;
-    use krabmaga::engine::{schedule::Schedule, state::State};
+    use crate::{config::core_config, model::board::Board};
+    use krabmaga::{
+        engine::{location::Int2D, schedule::Schedule, state::State},
+        hashbrown::HashSet,
+    };
 
-    let seed = 0;
-    let step = 100;
-    let num_agents = 4;
+    let seed = core_config().world.RANDOM_SEED;
+    let step = 10;
+    let num_agents = core_config().world.N_AGENTS;
     let dim: (u16, u16) = (10, 10);
 
-    let mut board = Board::new_with_seed(dim, num_agents, seed);
-
+    // let mut board = Board::new_with_seed(dim, num_agents, seed);
+    let mut board = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
+        Board::new_with_seed_resources(dim, num_agents, seed, &file_name)
+    } else {
+        Board::new_with_seed(dim, num_agents, seed)
+    };
     // Use simulate
     // simulate!(state, step, 10, false);
 
@@ -49,15 +59,20 @@ fn main() {
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
+    use config::core_config;
     use model::board::Board;
 
-    let num_agents = 4;
-    let dim: (u16, u16) = (20, 20);
-
-    let state = Board::new(dim, num_agents);
+    let num_agents = core_config().world.N_AGENTS;
+    let seed = core_config().world.RANDOM_SEED;
+    let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+    let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
+        Board::new_with_seed_resources(dim, num_agents, seed, &file_name)
+    } else {
+        Board::new_with_seed(dim, num_agents, seed)
+    };
     Visualization::default()
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
-        .with_simulation_dimensions((dim.0 + 2).into(), (dim.1 + 2).into())
+        .with_simulation_dimensions((dim.0 + 1).into(), (dim.1 + 1).into())
         .with_background_color(Color::GRAY)
         .with_name("Template")
         .start::<BoardVis, Board>(BoardVis, state);
