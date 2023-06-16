@@ -139,10 +139,24 @@ impl Agent for Forager {
         match item {
             EnvItem::Land | EnvItem::Bush => {}
             EnvItem::Resource(Resource::Food) => {
-                self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
+                if self.id() < state.num_agents as u32 / 2 {
+                    self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
+                } else {
+                    self.acquire(
+                        &Resource::Food,
+                        core_config().agent.SPECIAL_FOOD_ACQUIRE_RATE,
+                    )
+                }
             }
             EnvItem::Resource(Resource::Water) => {
-                self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
+                if self.id() < state.num_agents as u32 / 2 {
+                    self.acquire(
+                        &Resource::Water,
+                        core_config().agent.SPECIAL_WATER_ACQUIRE_RATE,
+                    )
+                } else {
+                    self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
+                }
             }
         }
 
@@ -159,12 +173,12 @@ impl Agent for Forager {
 
         // if self.id == 0 {
         //     println!(
-        //         "agent: {:?}, food: {:?}, water: {:?}, act: {:?}, pos: {}",
+        //         "agent: {:?}, food: {:?}, water: {:?}, act: {:?}",
         //         self.id,
         //         self.food,
         //         self.water,
         //         action,
-        //         self.get_position()
+        //         // self.get_position()
         //     );
         // }
     }

@@ -19,7 +19,11 @@ impl AgentRender for TraderVis {
     /// Be sure to also copy the asset itself in the assets/emojis folder. In future, this limitation will
     /// be removed.
     fn sprite(&self, _agent: &Box<dyn Agent>, _state: &Box<&dyn State>) -> SpriteType {
-        SpriteType::Emoji(String::from("crab"))
+        if self.id < _state.as_any().downcast_ref::<Board>().unwrap().num_agents as u32 / 2 {
+            SpriteType::Emoji(String::from("dino-black"))
+        } else {
+            SpriteType::Emoji(String::from("dino-white"))
+        }
     }
 
     /// Specify where the agent should be rendered in the window.

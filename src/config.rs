@@ -72,6 +72,8 @@ pub struct AgentConfig {
     pub INIT_WATER: i32,
     pub FOOD_ACQUIRE_RATE: i32,
     pub WATER_ACQUIRE_RATE: i32,
+    pub SPECIAL_FOOD_ACQUIRE_RATE: i32,
+    pub SPECIAL_WATER_ACQUIRE_RATE: i32,
     pub FOOD_CONSUME_RATE: u32,
     pub WATER_CONSUME_RATE: u32,
     pub FOOD_MAX_INVENTORY: i32,

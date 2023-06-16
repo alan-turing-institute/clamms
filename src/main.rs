@@ -92,6 +92,10 @@ fn main() {
         InvLevel::iter().collect::<Vec<InvLevel>>(),
         Action::iter().collect::<Vec<Action>>(),
     );
+    let mut f = File::create("agent_hist_log.txt").unwrap();
+    if let Err(e) = writeln!(f, "[") {
+        eprintln!("Couldn't write to file: {}", e);
+    }
 
     let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
         Board::new_with_seed_resources(dim, num_agents, seed, &file_name, model)
@@ -112,7 +116,18 @@ fn main() {
 
         let state = mutex.as_any_mut().downcast_mut::<Board>().unwrap();
         let i = state.step;
-        state.model.step(i as i32, &state.agent_histories);
+        let last_sars = state.model.step(i as i32, &state.agent_histories);
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open("agent_hist_log.txt")
+            .unwrap();
+        if let Some(sar) = last_sars {
+            if let Err(e) = writeln!(file, "{},", serde_json::to_string_pretty(&sar).unwrap()) {
+                eprintln!("Couldn't write to file: {}", e);
+            }
+        }
     }
     // fn runner(mut app: App) {
     //     for i in 0..100 {

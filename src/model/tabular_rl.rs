@@ -11,7 +11,7 @@ use crate::config::core_config;
 use super::{
     agent_state::DiscrRep,
     board::Board,
-    history::History,
+    history::{History, SAR},
     q_table::{self, QTable},
 };
 
@@ -53,7 +53,11 @@ where
         }
     }
 
-    pub fn step(&mut self, t: i32, agent_hist: &HashMap<u32, History<T, S, L, A>>) {
+    pub fn step(
+        &mut self,
+        t: i32,
+        agent_hist: &HashMap<u32, History<T, S, L, A>>,
+    ) -> Option<HashMap<u32, SAR<T, S, L, A>>> {
         let tau_: i32 = t - core_config().rl.SARSA_N as i32 - 1;
 
         // do update
@@ -90,6 +94,14 @@ where
                 // println!("{:?} -> {:?}", old_q, q_tau)
             }
         }
+        let mut last_sars = HashMap::new();
+        if t > 0 {
+            for (id, hist) in agent_hist.iter() {
+                last_sars.insert(*id, hist.trajectory.last().unwrap().clone());
+            }
+            return Some(last_sars);
+        }
+        None
     }
 
     pub fn get_table_by_id_mut(&mut self, id: u32) -> &mut HashMap<(Vec<(S, L)>, A), f32> {

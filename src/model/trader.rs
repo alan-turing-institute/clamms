@@ -274,7 +274,31 @@ impl Position for Trader {
     }
 }
 
-impl Router for Trader {}
+impl Router for Trader {
+    fn find_nearest_trader(
+        &self,
+        state: &dyn krabmaga::engine::state::State,
+        horizon: Option<u32>,
+    ) -> Option<Int2D> {
+        let state = state.as_any().downcast_ref::<Board>().unwrap();
+        let mut cur_type = false;
+        let mut trader_type = false;
+        if self.id() < state.num_agents as u32 / 2 {
+            cur_type = true;
+        }
+        let traders = get_traders(state);
+        let mut opposite_type_trader_locations = Vec::new();
+        for trader in traders {
+            if trader.id() < state.num_agents as u32 / 2 {
+                trader_type = true;
+            }
+            if trader_type != cur_type {
+                opposite_type_trader_locations.push(trader.get_position())
+            }
+        }
+        self.find_nearest(&opposite_type_trader_locations, horizon)
+    }
+}
 
 impl Inventory for Trader {
     fn count(&self, resource: &Resource) -> i32 {
