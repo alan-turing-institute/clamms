@@ -409,8 +409,8 @@ impl State for Board {
                     )
                 })
                 .collect();
-            println!("pre: {:?}", inventories_pre);
-            println!("post: {:?}", inventories_post);
+            // println!("pre: {:?}", inventories_pre);
+            // println!("post: {:?}", inventories_post);
         }
     }
 
