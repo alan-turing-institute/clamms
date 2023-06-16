@@ -1,7 +1,10 @@
 // Adapted from https://github.com/alan-turing-institute/trustchain/blob/main/trustchain-core/src/config.rs
 
 //! Core configuration types and utilities.
+use krabmaga::explore::mpi::genetic;
 use lazy_static::lazy_static;
+use rand::Rng;
+use rand::{rngs::StdRng,SeedableRng};
 // use rand::Error;
 use crate::model::action::Action;
 use regex::Regex;
@@ -10,6 +13,7 @@ use std::f32::consts::PI;
 use std::fs;
 use std::path::Path;
 use toml;
+use krabmaga::engine::state::State;
 
 pub type ResourceAbundance = f32;
 
@@ -55,11 +59,13 @@ pub fn degree2radians(deg: f32) -> f32 {
 }
 
 pub fn action2rotation(action: Action) -> f32 {
+    let mut rng = StdRng::from_entropy();
+
     let degs = match action {
         Action::ToAgent => 0.0,
         Action::Stationary => 0.0,
-        Action::ToFood => 20.0,
-        Action::ToWater => 340.0,
+        Action::ToFood => rng.gen_range(1.0..40.0),
+        Action::ToWater => rng.gen_range(320.0..359.0),
     };
     degree2radians(degs)
 }
