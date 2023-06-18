@@ -61,10 +61,7 @@ fn main() {
     board.init(&mut schedule);
     for i in 0..n_steps {
         println!("Step: {i}");
-        // println!("Step: {i}");
         schedule.step(&mut board);
-        // TODO: move into the state
-        board.model.step(i, &board.agent_histories);
     }
 
     // // Open output file and write history
@@ -104,18 +101,6 @@ fn main() {
     use krabmaga::engine::state::State;
     use krabmaga::visualization::visualization_state::VisualizationState;
     use krabmaga::visualization::wrappers::ActiveState;
-    fn update_model<
-        I: VisualizationState<S> + Clone + 'static + bevy::prelude::Resource,
-        S: State,
-    >(
-        active_state_wrapper: ResMut<ActiveState<S>>,
-    ) {
-        let mut mutex = active_state_wrapper.0.lock().expect("unwrapping state");
-
-        let state = mutex.as_any_mut().downcast_mut::<Board>().unwrap();
-        let i = state.step;
-        state.model.step(i as i32, &state.agent_histories);
-    }
     // fn runner(mut app: App) {
     //     for i in 0..100 {
     //         app.update();
@@ -127,7 +112,6 @@ fn main() {
         .with_background_color(Color::GRAY)
         .with_name("CLAMMs")
         .setup::<BoardVis, Board>(BoardVis, state)
-        .add_system(update_model::<BoardVis, Board>)
         // .set_runner(runner)
         .run();
 }

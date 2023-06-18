@@ -422,22 +422,21 @@ impl State for Board {
     fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
         self.step += 1;
 
-        // WIP: Move model update to after_step()
-        // // Updates as state
-        // let mut step: i32 = self.step.try_into().unwrap();
-        // step -= 1;
+        // Updates as state
+        let mut step: i32 = self.step.try_into().unwrap();
+        step -= 1;
 
-        // // Update board model
-        // let board = self.as_any_mut().downcast_mut::<Board>().unwrap();
-        // board.model.step(step, &board.agent_histories);
+        // Update board model
+        let board = self.as_any_mut().downcast_mut::<Board>().unwrap();
+        board.model.step(step, &board.agent_histories);
 
-        // // Simple report of mean reward
-        // let his = board.agent_histories.get(&0).unwrap();
-        // println!(
-        //     "Mean reward for agent 0: {} at step: {step}",
-        //     his.trajectory.iter().map(|sar| sar.reward.val).sum::<i32>()
-        //         / his.trajectory.len() as i32
-        // );
+        // Simple report of mean reward
+        let his = board.agent_histories.get(&0).unwrap();
+        println!(
+            "Mean reward for agent 0: {} at step: {step}",
+            his.trajectory.iter().map(|sar| sar.reward.val).sum::<i32>()
+                / his.trajectory.len() as i32
+        );
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
