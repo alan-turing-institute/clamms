@@ -457,6 +457,8 @@ impl State for Board {
 
     fn update(&mut self, step: u64) {
         // lazy_update stops the field being searchable!
+        // TODO: the resource grid update might be bottleneck (flamegraph), consider a lookup for
+        // resources based on loc as part of Board given resources remain in constant loc
         self.resource_grid.update();
         self.agent_grid.lazy_update();
     }
