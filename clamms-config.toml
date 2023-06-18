@@ -1,6 +1,6 @@
 [world]
+N_STEPS = 10000
 RANDOM_SEED = 0
-
 LAND_PROP = 0.7
 FOOD_ABUNDANCE = 0.1
 WATER_ABUNDANCE = 0.1
@@ -11,7 +11,7 @@ RESOURCE_LOCATIONS_FILE = "resource_locations_bigger.json"
 # RESOURCE_LOCATIONS_FILE = "resource_locations_river.json"
 WIDTH = 42
 HEIGHT = 42
-N_AGENTS = 10
+N_AGENTS = 30
 
 [agent]
 INIT_FOOD = 0

@@ -33,7 +33,7 @@ fn main() {
     };
 
     let seed = core_config().world.RANDOM_SEED;
-    let step = 5000;
+    let n_steps = core_config().world.N_STEPS;
     let num_agents = core_config().world.N_AGENTS;
     let dim: (u16, u16) = (10, 10);
 
@@ -59,9 +59,11 @@ fn main() {
     let mut schedule: Schedule = Schedule::new();
     // let state = board.as_state_mut();
     board.init(&mut schedule);
-    for i in 0..step {
+    for i in 0..n_steps {
+        println!("Step: {i}");
         // println!("Step: {i}");
         schedule.step(&mut board);
+        // TODO: move into the state
         board.model.step(i, &board.agent_histories);
     }
 

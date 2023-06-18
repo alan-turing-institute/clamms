@@ -15,6 +15,7 @@ use super::{
     q_table::{self, QTable},
 };
 
+#[derive(Debug)]
 pub struct SARSAModel<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,

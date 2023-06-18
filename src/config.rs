@@ -91,6 +91,7 @@ pub struct AgentConfig {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct WorldConfig {
     /// Config params for simulation world.
+    pub N_STEPS: i32,
     pub RANDOM_SEED: u64,
     pub LAND_PROP: f32,
     pub FOOD_ABUNDANCE: f32,
@@ -140,15 +141,9 @@ mod tests {
         WATER_ABUNDANCE = 0.1
         TREE_PROB = 0.1
         SWEET_PROB = 0.01
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-=======
         N_AGENTS = 10
         WIDTH = 10
         HEIGHT = 10
->>>>>>> main
->>>>>>> main
 
         [agent]
         INIT_FOOD = 0
