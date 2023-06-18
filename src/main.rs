@@ -35,9 +35,9 @@ fn main() {
     let seed = core_config().world.RANDOM_SEED;
     let n_steps = core_config().world.N_STEPS;
     let num_agents = core_config().world.N_AGENTS;
-    let dim: (u16, u16) = (10, 10);
+    let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
 
-    let mut model = SARSAModel::new(
+    let model = SARSAModel::new(
         (0..num_agents).map(|n| n.into()).collect(),
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
@@ -46,7 +46,7 @@ fn main() {
 
     // let mut board = Board::new_with_seed(dim, num_agents, seed, model);
     let mut board = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
-        Board::new_with_seed_resources(dim, num_agents, seed, &file_name, model)
+        Board::new_with_seed_resources(dim, num_agents, seed, file_name, model)
     } else {
         Board::new_with_seed(dim, num_agents, seed, model)
     };
