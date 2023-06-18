@@ -9,6 +9,7 @@ use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;
+use rand::Rng;
 // use krabmaga::utils;
 
 pub trait Router: Position {
@@ -35,7 +36,7 @@ pub trait Router: Position {
         // Downcast to get access to rng
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
         match target {
-            None => rand::random(),
+            None => state.rng.gen(),
             Some(pos) => {
                 if pos.eq(&self.get_position()) {
                     return None;
