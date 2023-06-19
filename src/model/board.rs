@@ -427,12 +427,15 @@ impl State for Board {
         let board = self.as_any_mut().downcast_mut::<Board>().unwrap();
         board.model.step(step, &board.agent_histories);
 
-        // Simple report of mean reward
-        let his = board.agent_histories.get(&0).unwrap();
+        // TODO: add better dashboard statistics for agents/optimization
+        // Simple report of mean reward over last 100
+        let traj = &board.agent_histories.get(&0).unwrap().trajectory;
+        let recent_len = 100;
+        let recent_traj = &traj[(traj.len().max(recent_len) - recent_len)..traj.len()];
         println!(
-            "Mean reward for agent 0: {} at step: {step}",
-            his.trajectory.iter().map(|sar| sar.reward.val).sum::<i32>()
-                / his.trajectory.len() as i32
+            "Mean reward (over last 100 steps) for agent 0: {} at step: {step}",
+            recent_traj.iter().map(|sar| sar.reward.val).sum::<i32>()
+                / i32::try_from(recent_traj.len()).unwrap()
         );
     }
 

@@ -1,19 +1,10 @@
-use itertools::Itertools;
-use krabmaga::{engine::state::State, HashMap};
+use super::{agent_state::DiscrRep, history::History, q_table::QTable};
+use crate::config::core_config;
+use krabmaga::HashMap;
 use rand::rngs::StdRng;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use strum::IntoEnumIterator;
-use tuple_conv::RepeatedTuple;
-
-use crate::config::core_config;
-
-use super::{
-    agent_state::DiscrRep,
-    board::Board,
-    history::History,
-    q_table::{self, QTable},
-};
 
 #[derive(Debug)]
 pub struct SARSAModel<T, S, L, A>
@@ -23,7 +14,10 @@ where
     L: std::cmp::Eq + std::hash::Hash + Clone,
     A: std::cmp::Eq + std::hash::Hash + Clone,
 {
+    /// Q tables indexed by agent ID.
     pub q_tbls: HashMap<u32, QTable<S, L, A>>,
+    /// Only learn single table if value is false, while one per agent if true.
+    multi_policy: bool,
     agent_state_type: PhantomData<T>,
 }
 
@@ -40,6 +34,7 @@ where
         state_items: Vec<S>,
         state_levels: Vec<L>,
         actions: Vec<A>,
+        multi_policy: bool,
     ) -> Self {
         let mut q_tbls = HashMap::new();
         for id in agent_ids {
@@ -50,7 +45,16 @@ where
         }
         SARSAModel {
             q_tbls,
+            multi_policy,
             agent_state_type: PhantomData,
+        }
+    }
+
+    fn policy_id(&self, id: u32) -> u32 {
+        if self.multi_policy {
+            id
+        } else {
+            0
         }
     }
 
@@ -61,7 +65,7 @@ where
         if tau_ >= 0 {
             // update all agents in turn
             for (id, hist) in agent_hist.iter() {
-                let tab = self.get_table_by_id_mut(*id);
+                let tab = self.get_table_by_id_mut(self.policy_id(*id));
                 let traj = &hist.trajectory;
 
                 let tau = tau_ as usize;
@@ -95,14 +99,14 @@ where
 
     pub fn get_table_by_id_mut(&mut self, id: u32) -> &mut HashMap<(Vec<(S, L)>, A), f32> {
         self.q_tbls
-            .get_mut(&id)
+            .get_mut(&self.policy_id(id))
             .expect("qtable was initialised for all agent id's")
             .get_tab_mut()
     }
 
     pub fn get_table_by_id(&self, id: u32) -> &HashMap<(Vec<(S, L)>, A), f32> {
         self.q_tbls
-            .get(&id)
+            .get(&self.policy_id(id))
             .expect("qtable was initialised for all agent id's")
             .get_tab()
     }
@@ -110,7 +114,7 @@ where
     pub fn sample_action_by_id(&self, id: u32, state: &Vec<(S, L)>, rng: &mut StdRng) -> A {
         let (a, q_optimal) = self
             .q_tbls
-            .get(&id)
+            .get(&self.policy_id(id))
             .expect("qtable was initialised for all agent id's")
             .sample_action(state, rng);
         if id == 0 {

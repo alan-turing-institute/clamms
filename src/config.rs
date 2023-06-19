@@ -112,6 +112,7 @@ pub struct RLConfig {
     pub GAMMA: f32,
     pub ALPHA: f32,
     pub EPSILON: f32,
+    pub MULTI_POLICY: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]

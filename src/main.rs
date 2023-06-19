@@ -36,6 +36,7 @@ fn main() {
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
         Action::iter().collect::<Vec<Action>>(),
+        false,
     );
 
     // let mut board = Board::new_with_seed(dim, num_agents, seed, model);
@@ -52,7 +53,6 @@ fn main() {
     // let state = board.as_state_mut();
     board.init(&mut schedule);
     for i in 0..n_steps {
-        println!("Step: {i}");
         schedule.step(&mut board);
     }
 
@@ -80,6 +80,7 @@ fn main() {
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
         Action::iter().collect::<Vec<Action>>(),
+        false,
     );
 
     let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
