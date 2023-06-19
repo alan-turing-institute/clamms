@@ -112,19 +112,20 @@ pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
     map
 }
 
+// TODO: add a fast lookup by location for resources
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
-    // pub forager_grid: DenseGrid2D<Forager>,
     pub agent_grid: DenseGrid2D<Trader>,
     pub dim: (u16, u16),
     pub num_agents: u8,
     pub agent_histories: HashMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
-    // TODO: consider refactor to BTreeMap if issues occur around deterministic iteration
     pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
+    pub loc2resources: HashMap<Int2D, Resource>,
     pub rng: StdRng,
     pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     pub loaded_map: bool,
+    pub has_trading: bool,
 }
 
 impl Board {
@@ -132,19 +133,21 @@ impl Board {
         dim: (u16, u16),
         num_agents: u8,
         model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+        has_trading: bool,
     ) -> Board {
         Board {
             step: 0,
-            // forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
             agent_histories: HashMap::new(),
             resource_locations: BTreeMap::new(),
+            loc2resources: HashMap::new(),
             rng: StdRng::from_entropy(),
             model,
             loaded_map: false,
+            has_trading,
         }
     }
     pub fn new_with_seed(
@@ -152,19 +155,21 @@ impl Board {
         num_agents: u8,
         seed: u64,
         model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+        has_trading: bool,
     ) -> Board {
         Board {
             step: 0,
-            // forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
             agent_histories: HashMap::new(),
             resource_locations: BTreeMap::new(),
+            loc2resources: HashMap::new(),
             rng: StdRng::seed_from_u64(seed),
             model,
             loaded_map: false,
+            has_trading,
         }
     }
     pub fn new_with_seed_resources(
@@ -173,10 +178,21 @@ impl Board {
         seed: u64,
         map_locations: &str,
         model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+        has_trading: bool,
     ) -> Board {
         let path =
             std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join(map_locations);
         let resource_locations = read_resource_locations(&std::fs::read_to_string(path).unwrap());
+        let loc2resources = resource_locations.iter().fold(
+            HashMap::<Int2D, Resource>::new(),
+            |mut acc, (&resource, locs)| {
+                locs.iter().for_each(|loc| {
+                    acc.insert(*loc, resource);
+                });
+                acc
+            },
+        );
+
         Board {
             step: 0,
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
@@ -185,28 +201,13 @@ impl Board {
             num_agents,
             agent_histories: HashMap::new(),
             resource_locations,
+            loc2resources,
             rng: StdRng::seed_from_u64(seed),
             loaded_map: true,
             model,
+            has_trading,
         }
     }
-    // pub fn construct(
-    //     agent_grid: DenseGrid2D<Trader>,
-    //     resource_grid: DenseGrid2D<Patch>,
-    //     num_agents: u8,
-    //     dim: (u16, u16),
-    // ) -> Board {
-    //     Board {
-    //         step: 0,
-    //         agent_grid,
-    //         resource_grid,
-    //         dim,
-    //         num_agents,
-    //         agent_histories: HashMap::new(),
-    //         resource_locations: BTreeMap::new(),
-    //         rng: StdRng::from_entropy(),
-    //     }
-    // }
 }
 
 impl State for Board {
@@ -288,7 +289,7 @@ impl State for Board {
     }
 
     fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {
-        if self.step > 0 {
+        if (self.step > 0) & self.has_trading {
             use super::routing::get_traders;
             // get snapshot of agents inventories
             let traders_pre = get_traders(self);
@@ -312,10 +313,6 @@ impl State for Board {
 
                 // Execute trade if available.
                 if !cur.offer().is_trivial() {
-                    // Get traders as mutable...(hack):
-                    // TODO: only insider trading horizon.
-                    // cfg_if! {
-                    // if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
                     let offer = cur.offer();
                     for trader in get_traders(self) {
                         // only use the id's to keep track of which traders have been
@@ -459,8 +456,10 @@ impl State for Board {
         // lazy_update stops the field being searchable!
         // TODO: the resource grid update might be bottleneck (flamegraph), consider a lookup for
         // resources based on loc as part of Board given resources remain in constant loc
-        self.resource_grid.update();
+        // self.resource_grid.update();
+        self.resource_grid.lazy_update();
         self.agent_grid.lazy_update();
+        // self.agent_grid.update();
     }
 
     fn reset(&mut self) {

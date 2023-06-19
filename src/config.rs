@@ -102,6 +102,7 @@ pub struct WorldConfig {
     pub WIDTH: u16,
     pub HEIGHT: u16,
     pub N_AGENTS: u8,
+    pub HAS_TRADING: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -144,6 +145,7 @@ mod tests {
         N_AGENTS = 10
         WIDTH = 10
         HEIGHT = 10
+        HAS_TRADING = true
 
         [agent]
         INIT_FOOD = 0

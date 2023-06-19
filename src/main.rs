@@ -1,14 +1,10 @@
-use std::collections::BTreeMap;
-
-use krabmaga::{engine::location::Int2D, hashbrown::HashSet, *};
-use model::environment::Resource;
+use krabmaga::*;
 mod config;
 mod model;
 use crate::model::{
     action::Action,
     agent_state::{AgentStateItems, InvLevel},
     board::Board,
-    forager::Forager,
     tabular_rl::SARSAModel,
 };
 use strum::IntoEnumIterator;
@@ -26,16 +22,14 @@ mod visualization;
 // Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
-    use crate::{config::core_config, model::board::Board};
-    use krabmaga::{
-        engine::{location::Int2D, schedule::Schedule, state::State},
-        hashbrown::HashSet,
-    };
+    use crate::config::core_config;
+    use krabmaga::engine::{schedule::Schedule, state::State};
 
     let seed = core_config().world.RANDOM_SEED;
     let n_steps = core_config().world.N_STEPS;
     let num_agents = core_config().world.N_AGENTS;
     let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+    let has_trading = core_config().world.HAS_TRADING;
 
     let model = SARSAModel::new(
         (0..num_agents).map(|n| n.into()).collect(),
@@ -46,14 +40,12 @@ fn main() {
 
     // let mut board = Board::new_with_seed(dim, num_agents, seed, model);
     let mut board = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
-        Board::new_with_seed_resources(dim, num_agents, seed, file_name, model)
+        Board::new_with_seed_resources(dim, num_agents, seed, file_name, model, has_trading)
     } else {
-        Board::new_with_seed(dim, num_agents, seed, model)
+        Board::new_with_seed(dim, num_agents, seed, model, has_trading)
     };
     // Use simulate
     // simulate!(state, step, 10, false);
-
-    // setup RL model
 
     // Use scheduler and run directly once
     let mut schedule: Schedule = Schedule::new();
@@ -78,14 +70,12 @@ fn main() {
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
     use config::core_config;
-    use krabmaga::bevy::prelude::{App, Query, World};
-    use model::board::Board;
-
     let num_agents = core_config().world.N_AGENTS;
     let seed = core_config().world.RANDOM_SEED;
     let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+    let has_trading = core_config().world.HAS_TRADING;
 
-    let mut model = SARSAModel::new(
+    let model = SARSAModel::new(
         (0..num_agents).map(|n| n.into()).collect(),
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
@@ -93,19 +83,10 @@ fn main() {
     );
 
     let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
-        Board::new_with_seed_resources(dim, num_agents, seed, &file_name, model)
+        Board::new_with_seed_resources(dim, num_agents, seed, file_name, model, has_trading)
     } else {
-        Board::new_with_seed(dim, num_agents, seed, model)
+        Board::new_with_seed(dim, num_agents, seed, model, has_trading)
     };
-    use crate::bevy::prelude::ResMut;
-    use krabmaga::engine::state::State;
-    use krabmaga::visualization::visualization_state::VisualizationState;
-    use krabmaga::visualization::wrappers::ActiveState;
-    // fn runner(mut app: App) {
-    //     for i in 0..100 {
-    //         app.update();
-    //     }
-    // }
     Visualization::default()
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
         .with_simulation_dimensions((dim.0 + 1).into(), (dim.1 + 1).into())

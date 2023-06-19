@@ -1,17 +1,14 @@
 use super::action::Action;
 use super::agent_state::{AgentState, DiscrRep};
 use super::board::Board;
-use super::environment::{EnvItem, Resource};
+use super::environment::Resource;
 use super::history::SAR;
 use super::inventory::Inventory;
 use super::policy::Policy;
 use super::reward::Reward;
-use super::routing::{
-    get_resource_locations, get_trader_locations, move_towards, Position, Router,
-};
+use super::routing::{get_resource_locations, get_trader_locations, Position, Router};
 use super::trader::Trader;
 use crate::config::core_config;
-use krabmaga::engine::fields::field_2d::Location2D;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
@@ -135,17 +132,16 @@ impl Agent for Forager {
         self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
 
         // if now on a resource, gather the resource
-        let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
-        match item {
-            EnvItem::Land | EnvItem::Bush => {}
-            EnvItem::Resource(Resource::Food) => {
-                self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
-            }
-            EnvItem::Resource(Resource::Water) => {
-                self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
+        if let Some(item) = state.loc2resources.get(&self.pos) {
+            match item {
+                Resource::Food => {
+                    self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
+                }
+                Resource::Water => {
+                    self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
+                }
             }
         }
-
         // push (s_n, a_n, r_n+1) to history
         state
             .agent_histories
@@ -153,7 +149,7 @@ impl Agent for Forager {
             .expect("HashMap initialised for all agents")
             .push(SAR::new(
                 agent_state,
-                action.clone(),
+                action,
                 Reward::from_inv_count_linear(self.food, self.water),
             ));
 
