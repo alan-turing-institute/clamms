@@ -457,12 +457,19 @@ impl State for Board {
 
     fn update(&mut self, step: u64) {
         // lazy_update stops the field being searchable!
-        // TODO: the resource grid update might be bottleneck (flamegraph), consider a lookup for
-        // resources based on loc as part of Board given resources remain in constant loc
+        // TODO: in non-visualization feature, calls to update appear to be a bottleneck (flamegraph).
+        // Looks like underlying data structure repeatedly clones the vec of vec grid.
+        // Resources now have their own lookup by position. Agents are more complex as they are not
+        // fixed.
+        // Investigate a fix for updates when running without visualization with trading. A place to
+        // start might be to check if the data structures with the visualization feature's grid can
+        // also be used in the non-visualization feature.
+        //
         // self.resource_grid.update();
         self.resource_grid.lazy_update();
-        self.agent_grid.lazy_update();
+        // Must be .update() for trading currently, see above todo
         // self.agent_grid.update();
+        self.agent_grid.lazy_update();
     }
 
     fn reset(&mut self) {
