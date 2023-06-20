@@ -12,7 +12,7 @@ RESOURCE_LOCATIONS_FILE = "resource_locations.json"
 WIDTH = 20
 HEIGHT = 20
 N_AGENTS = 30
-HAS_TRADING = false
+HAS_TRADING = true
 
 [agent]
 INIT_FOOD = 0

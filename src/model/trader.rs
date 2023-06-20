@@ -1,7 +1,7 @@
 use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::{agent::Agent, location::Int2D};
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
-use strum_macros::Display;
 // use std::error::Error;
 use super::{
     action::Action,
@@ -20,6 +20,20 @@ use crate::engine::fields::grid_option::GridOption;
 #[derive(Clone, Copy)]
 pub struct Trader {
     pub forager: Forager,
+}
+
+impl Display for Trader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "ID: {}; Loc: ({}, {}); Food: {} Water: {}",
+            self.id(),
+            self.forager.pos.x,
+            self.forager.pos.y,
+            self.forager.count(&Resource::Food),
+            self.forager.count(&Resource::Water)
+        )
+    }
 }
 
 impl Trader {

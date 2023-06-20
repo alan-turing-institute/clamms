@@ -325,78 +325,26 @@ impl State for Board {
                                 && step_distance(&cur.forager.pos, &trader.forager.pos)
                                     < core_config().trade.MAX_TRADE_DISTANCE
                             {
+                                // Remove object, update and set again - should resolve: https://github.com/alan-turing-institute/clamms/issues/38#issue-1760693194
+                                self.agent_grid
+                                    .remove_object_location(trader, &trader.forager.pos);
                                 let settled_trader = settle_trade_on_counterparty(trader, &offer);
                                 self.agent_grid.set_object_location(
                                     settled_trader,
-                                    &Int2D {
-                                        x: settled_trader.forager.pos.x,
-                                        y: settled_trader.forager.pos.y,
-                                    },
+                                    &settled_trader.forager.pos,
                                 );
-                                self.agent_grid.update();
-
                                 println!("INVERTING OFFER!");
+                                self.agent_grid
+                                    .remove_object_location(cur, &cur.forager.pos);
                                 let settled_cur =
                                     settle_trade_on_counterparty(cur, &offer.invert());
-                                self.agent_grid.set_object_location(
-                                    settled_cur,
-                                    &Int2D {
-                                        x: settled_cur.forager.pos.x,
-                                        y: settled_cur.forager.pos.y,
-                                    },
-                                );
-                                self.agent_grid.update();
+                                self.agent_grid
+                                    .set_object_location(settled_cur, &settled_cur.forager.pos);
                             }
                         }
+                        // TODO: Should break here if a trade occurs?
                     }
                 }
-                //
-                // Proposed fix from edchapman88 (see https://github.com/alan-turing-institute/clamms/issues/38#issue-1760693194)
-                // self.agent_grid.apply_to_all_values(|_, trader| {
-                //     if trader.offer().matched(&offer) {
-                //         if step_distance(&cur.forager.pos, &trader.forager.pos)
-                //             < core_config().trade.MAX_TRADE_DISTANCE {
-                //             // TODO: consider picking one trader at random instead
-                //             // of *this* trader. (No real advantage though.)
-                //             let settled_trader = settle_trade_on_counterparty(self.agent_grid.get(trader).unwrap(), &offer);
-                //             // self.agent_grid.set_object_location(
-                //             //     settled_trader,
-                //             //     &Int2D {
-                //             //         x: settled_trader.forager.pos.x,
-                //             //         y: settled_trader.forager.pos.y,
-                //             //     },
-                //             // );
-                //             println!("INVERTING OFFER!");
-                //             let settled_cur = settle_trade_on_counterparty(cur, &offer.invert());
-                //             self.agent_grid.set_object_location(
-                //                 settled_cur,
-                //                 &Int2D {
-                //                     x: settled_cur.forager.pos.x,
-                //                     y: settled_cur.forager.pos.y,
-                //                 },
-                //             );
-                //             return Some(settled_trader)
-                //         }
-                //     }
-                //     Some(self.agent_grid.get(trader).unwrap())
-                // }, GridOption::READWRITE);
-                //
-                // TODO: confirm this else can be removed given the above changes
-                // } else {
-                //     for ref_cell in self.agent_grid.locs.iter_mut() {
-                //         for x in ref_cell.borrow_mut().iter_mut() {
-                //             for trader in x.iter_mut() {
-                //                 if trader.offer().matched(&cur.offer()) {
-                //                     // TODO: consider picking one trader at random instead
-                //                     // of *this* trader. (No real advantage though.)
-                //                     cur.settle_trade(trader);
-                //                 }
-                //             }
-                //         }
-                //     }
-                //     // }
-                //     // }
-                // }
             }
 
             // re-read from agent grid and compare inventories to pre-trade snapshot
@@ -465,10 +413,9 @@ impl State for Board {
         // start might be to check if the data structures with the visualization feature's grid can
         // also be used in the non-visualization feature.
         //
-        // self.resource_grid.update();
+        // Update: lazy_update() now should be ok as resources are fixed and agent updates remove and
+        // set object where the mutation occurs in before_step().
         self.resource_grid.lazy_update();
-        // Must be .update() for trading currently, see above todo
-        // self.agent_grid.update();
         self.agent_grid.lazy_update();
     }
 
