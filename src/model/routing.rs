@@ -92,8 +92,11 @@ pub fn get_traders(state: &dyn State) -> Vec<Trader> {
         } else {
             let mut traders = Vec::new();
             for ref_cell in state.agent_grid.locs.iter() {
-                for x in ref_cell.borrow().iter() {
-                    traders.append(&mut x.clone());
+                for traders_at_loc in ref_cell.borrow().iter() {
+                    // Slow clone
+                    // traders.append(&mut traders_at_loc.clone());
+                    // TODO: This should be faster to avoid cloning vecs
+                    traders_at_loc.iter().for_each(|trader| traders.push(*trader));
                 }
             }
             traders
