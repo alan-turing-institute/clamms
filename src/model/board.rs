@@ -322,9 +322,12 @@ impl State for Board {
                         if trader_id != cur.id() {
                             let trader = get_agent_by_id(self, &trader_id);
                             if trader.offer().matched(&offer)
-                                && step_distance(&cur.forager.pos, &trader.forager.pos)
-                                    < core_config().trade.MAX_TRADE_DISTANCE
+                                && (step_distance(&cur.forager.pos, &trader.forager.pos)
+                                    < core_config().trade.MAX_TRADE_DISTANCE)
                             {
+                                if core_config().simulation.VERBOSITY > 1 {
+                                    println!("Trade between: {} and {}", cur, trader);
+                                }
                                 // Remove object, update and set again - should resolve: https://github.com/alan-turing-institute/clamms/issues/38#issue-1760693194
                                 self.agent_grid
                                     .remove_object_location(trader, &trader.forager.pos);
@@ -333,7 +336,6 @@ impl State for Board {
                                     settled_trader,
                                     &settled_trader.forager.pos,
                                 );
-                                println!("INVERTING OFFER!");
                                 self.agent_grid
                                     .remove_object_location(cur, &cur.forager.pos);
                                 let settled_cur =
@@ -380,11 +382,13 @@ impl State for Board {
         let traj = &board.agent_histories.get(&0).unwrap().trajectory;
         let recent_len = 100;
         let recent_traj = &traj[(traj.len().max(recent_len) - recent_len)..traj.len()];
-        println!(
-            "Mean reward (over last 100 steps) for agent 0: {} at step: {step}",
-            recent_traj.iter().map(|sar| sar.reward.val).sum::<i32>()
-                / i32::try_from(recent_traj.len()).unwrap()
-        );
+        if core_config().simulation.VERBOSITY > 0 {
+            println!(
+                "Mean reward (over last 100 steps) for agent 0: {} at step: {step}",
+                recent_traj.iter().map(|sar| sar.reward.val).sum::<i32>()
+                    / i32::try_from(recent_traj.len()).unwrap()
+            );
+        }
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

@@ -119,10 +119,16 @@ pub struct RLConfig {
 pub struct TradeConfig {
     pub MAX_TRADE_DISTANCE: u32,
 }
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct SimulationConfig {
+    pub VERBOSITY: u32,
+}
 /// Wrapper struct for parsing the `core` table.
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct Config {
     /// Core configuration data.
+    pub simulation: SimulationConfig,
     pub agent: AgentConfig,
     pub world: WorldConfig,
     pub trade: TradeConfig,

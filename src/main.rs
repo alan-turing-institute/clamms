@@ -52,18 +52,18 @@ fn main() {
     let mut schedule: Schedule = Schedule::new();
     // let state = board.as_state_mut();
     board.init(&mut schedule);
-    for i in 0..n_steps {
+    for _ in 0..n_steps {
         schedule.step(&mut board);
     }
 
     // // Open output file and write history
-    // let mut f = File::create("output.json").unwrap();
-    // writeln!(
-    //     f,
-    //     "{}",
-    //     serde_json::to_string_pretty(&board.agent_histories).unwrap()
-    // )
-    // .unwrap();
+    let mut f = File::create("output.json").unwrap();
+    writeln!(
+        f,
+        "{}",
+        serde_json::to_string_pretty(&board.agent_histories).unwrap()
+    )
+    .unwrap();
 }
 
 // Main used when a visualization feature is applied.

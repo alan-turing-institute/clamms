@@ -209,12 +209,14 @@ impl Trade for Trader {
         self.acquire(&Resource::Water, offer.water_delta());
         counterparty.acquire(&Resource::Water, -1 * offer.water_delta());
 
-        println!(
-            "***** TRADE SETTLED FOR {:?} BETWEEN TRADER {} and TRADER {} *****",
-            offer,
-            self.id(),
-            counterparty.id()
-        )
+        if core_config().simulation.VERBOSITY > 1 {
+            println!(
+                "***** TRADE SETTLED FOR {:?} BETWEEN TRADER {} and TRADER {} *****",
+                offer,
+                self.id(),
+                counterparty.id()
+            )
+        }
     }
 }
 
@@ -226,26 +228,28 @@ pub fn settle_trade_on_counterparty(mut counterparty: Trader, offer: &Offer) -> 
     //     // Do nothing.
     //     return counterparty
     // }
-
-    println!(
-        "***** TRADE SETTLED FOR {:?} WITH TRADER {} *****",
-        offer,
-        counterparty.id()
-    );
-    println!(
-        "Prior inventory: Food: {}, Water: {}",
-        counterparty.forager.count(&Resource::Food),
-        counterparty.forager.count(&Resource::Water)
-    );
+    if core_config().simulation.VERBOSITY > 1 {
+        println!(
+            "***** TRADE SETTLED FOR {:?} WITH TRADER {} *****",
+            offer,
+            counterparty.id()
+        );
+        println!(
+            "Prior inventory: Food: {}, Water: {}",
+            counterparty.forager.count(&Resource::Food),
+            counterparty.forager.count(&Resource::Water)
+        );
+    }
     // Settle inventories.
     counterparty.acquire(&Resource::Food, -1 * offer.food_delta());
     counterparty.acquire(&Resource::Water, -1 * offer.water_delta());
-    println!(
-        "Final inventory: Food: {}, Water: {}",
-        counterparty.forager.count(&Resource::Food),
-        counterparty.forager.count(&Resource::Water)
-    );
-
+    if core_config().simulation.VERBOSITY > 1 {
+        println!(
+            "Final inventory: Food: {}, Water: {}",
+            counterparty.forager.count(&Resource::Food),
+            counterparty.forager.count(&Resource::Water)
+        );
+    }
     counterparty
 }
 
