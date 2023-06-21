@@ -311,7 +311,8 @@ impl State for Board {
             let mut traded: HashSet<u32> = HashSet::new();
 
             // Traders state is fixed so can be used to retrieve trader
-            let traders = get_traders(self);
+            let mut traders = get_traders(self);
+            traders.shuffle(&mut self.rng);
 
             // loop through agents resolving trades
             for id in ids {
@@ -319,45 +320,41 @@ impl State for Board {
                 if traded.contains(&id) {
                     continue;
                 }
-                let cur = *traders.iter().find(|trader| trader.id() == id).unwrap();
+                let party = *traders.iter().find(|trader| trader.id() == id).unwrap();
 
                 // Execute trade if available.
-                if !cur.offer().is_trivial() {
-                    let offer = cur.offer();
-                    for trader in &traders {
-                        let trader_id = trader.id();
+                if !party.offer().is_trivial() {
+                    let offer = party.offer();
+                    for counterparty in &traders {
+                        let counterparty_id = counterparty.id();
                         // If already traded, continue
-                        if traded.contains(&trader_id) {
+                        if traded.contains(&counterparty_id) {
                             continue;
                         }
-                        if trader_id != cur.id() {
-                            let trader = *traders
-                                .iter()
-                                .find(|trader| trader.id() == trader_id)
-                                .unwrap();
-                            if trader.offer().matched(&offer)
-                                && (step_distance(&cur.forager.pos, &trader.forager.pos)
-                                    < core_config().trade.MAX_TRADE_DISTANCE)
-                            {
-                                if core_config().simulation.VERBOSITY > 1 {
-                                    println!("Trade between: {} and {}", cur, trader);
-                                }
-                                traded.insert(cur.id());
-                                traded.insert(trader.id());
-                                let settled_trader = settle_trade_on_counterparty(trader, &offer);
-                                // Set object only retains objects with different ID to that being set
-                                // as PartialEq is based on ID
-                                self.agent_grid.set_object_location(
-                                    settled_trader,
-                                    &settled_trader.forager.pos,
-                                );
-                                let settled_cur =
-                                    settle_trade_on_counterparty(cur, &offer.invert());
-                                self.agent_grid
-                                    .set_object_location(settled_cur, &settled_cur.forager.pos);
-                                // Break as trade has occurred
-                                break;
+                        if counterparty_id != party.id()
+                            && counterparty.offer().matched(&offer)
+                            && (step_distance(&party.forager.pos, &counterparty.forager.pos)
+                                < core_config().trade.MAX_TRADE_DISTANCE)
+                        {
+                            if core_config().simulation.VERBOSITY > 1 {
+                                println!("Trade between: {} and {}", party, counterparty);
                             }
+                            traded.insert(party.id());
+                            traded.insert(counterparty.id());
+                            let settled_counterparty =
+                                settle_trade_on_counterparty(*counterparty, &offer);
+                            // Set object only retains objects with different ID to that being set
+                            // as PartialEq is based on ID
+                            self.agent_grid.set_object_location(
+                                settled_counterparty,
+                                &settled_counterparty.forager.pos,
+                            );
+                            let settled_party =
+                                settle_trade_on_counterparty(party, &offer.invert());
+                            self.agent_grid
+                                .set_object_location(settled_party, &settled_party.forager.pos);
+                            // Break as trade has occurred
+                            break;
                         }
                     }
                 }
