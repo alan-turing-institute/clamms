@@ -328,16 +328,13 @@ impl State for Board {
                                 if core_config().simulation.VERBOSITY > 1 {
                                     println!("Trade between: {} and {}", cur, trader);
                                 }
-                                // Remove object, update and set again - should resolve: https://github.com/alan-turing-institute/clamms/issues/38#issue-1760693194
-                                self.agent_grid
-                                    .remove_object_location(trader, &trader.forager.pos);
                                 let settled_trader = settle_trade_on_counterparty(trader, &offer);
+                                // Set object only retains objects with different ID to that being set
+                                // as PartialEq is based on ID
                                 self.agent_grid.set_object_location(
                                     settled_trader,
                                     &settled_trader.forager.pos,
                                 );
-                                self.agent_grid
-                                    .remove_object_location(cur, &cur.forager.pos);
                                 let settled_cur =
                                     settle_trade_on_counterparty(cur, &offer.invert());
                                 self.agent_grid
