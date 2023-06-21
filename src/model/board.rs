@@ -416,7 +416,6 @@ impl State for Board {
         //
         // Update: lazy_update() now should be ok as resources are fixed and agent updates remove and
         // set object where the mutation occurs in before_step().
-        self.resource_grid.lazy_update();
         self.agent_grid.lazy_update();
     }
 
