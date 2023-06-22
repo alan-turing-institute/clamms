@@ -205,7 +205,7 @@ impl Forager {
         self.id
     }
 
-    pub fn agent_state(&self, state: &dyn krabmaga::engine::state::State) -> AgentState {
+    pub fn agent_state(&self, state: &mut dyn krabmaga::engine::state::State) -> AgentState {
         let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state));
         let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state));
 

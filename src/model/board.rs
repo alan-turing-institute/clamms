@@ -126,6 +126,7 @@ pub struct Board {
     pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     pub loaded_map: bool,
     pub has_trading: bool,
+    pub traded: HashMap<u32, Option<u32>>,
 }
 
 impl Board {
@@ -148,6 +149,7 @@ impl Board {
             model,
             loaded_map: false,
             has_trading,
+            traded: HashMap::new(),
         }
     }
     pub fn new_with_seed(
@@ -170,6 +172,7 @@ impl Board {
             model,
             loaded_map: false,
             has_trading,
+            traded: HashMap::new(),
         }
     }
     pub fn new_with_seed_resources(
@@ -206,6 +209,7 @@ impl Board {
             loaded_map: true,
             model,
             has_trading,
+            traded: HashMap::new(),
         }
     }
 }
@@ -219,7 +223,6 @@ impl State for Board {
 
             let id: u32 = n.into();
 
-            // let agent = Forager::new(
             let agent = Trader::new(Forager::new(
                 id,
                 Int2D {
@@ -288,94 +291,7 @@ impl State for Board {
         }
     }
 
-    fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {
-        if (self.step > 0) & self.has_trading {
-            use super::routing::get_traders;
-            // get snapshot of agents inventories
-            let traders_pre = get_traders(self);
-            let inventories_pre: Vec<(i32, i32)> = traders_pre
-                .iter()
-                .map(|trader| {
-                    (
-                        trader.forager().count(&Resource::Food),
-                        trader.forager().count(&Resource::Water),
-                    )
-                })
-                .collect();
-
-            // randomly generate an agent trade resolution sequence
-            let mut ids: Vec<u32> = (0..self.num_agents.into()).collect();
-            ids.shuffle(&mut self.rng);
-
-            // IDs that have traded
-            let mut traded: HashSet<u32> = HashSet::new();
-
-            // Traders state is fixed so can be used to retrieve trader
-            let mut traders = get_traders(self);
-            traders.shuffle(&mut self.rng);
-
-            // loop through agents resolving trades
-            for id in ids {
-                // If already traded, continue
-                if traded.contains(&id) {
-                    continue;
-                }
-                let party = *traders.iter().find(|trader| trader.id() == id).unwrap();
-
-                // Execute trade if available.
-                if !party.offer().is_trivial() {
-                    let offer = party.offer();
-                    for counterparty in &traders {
-                        let counterparty_id = counterparty.id();
-                        // If already traded, continue
-                        if traded.contains(&counterparty_id) {
-                            continue;
-                        }
-                        if counterparty_id != party.id()
-                            && counterparty.offer().matched(&offer)
-                            && (step_distance(&party.forager.pos, &counterparty.forager.pos)
-                                < core_config().trade.MAX_TRADE_DISTANCE)
-                        {
-                            if core_config().simulation.VERBOSITY > 1 {
-                                println!("Trade between: {} and {}", party, counterparty);
-                            }
-                            traded.insert(party.id());
-                            traded.insert(counterparty.id());
-                            let settled_counterparty =
-                                settle_trade_on_counterparty(*counterparty, &offer);
-                            // Set object only retains objects with different ID to that being set
-                            // as PartialEq is based on ID
-                            self.agent_grid.set_object_location(
-                                settled_counterparty,
-                                &settled_counterparty.forager.pos,
-                            );
-                            let settled_party =
-                                settle_trade_on_counterparty(party, &offer.invert());
-                            self.agent_grid
-                                .set_object_location(settled_party, &settled_party.forager.pos);
-                            // Break as trade has occurred
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // re-read from agent grid and compare inventories to pre-trade snapshot
-            // get snapshot of agents inventories post trading
-            let traders_post = get_traders(self);
-            let inventories_post: Vec<(i32, i32)> = traders_post
-                .iter()
-                .map(|trader| {
-                    (
-                        trader.forager().count(&Resource::Food),
-                        trader.forager().count(&Resource::Water),
-                    )
-                })
-                .collect();
-            // println!("pre: {:?}", inventories_pre);
-            // println!("post: {:?}", inventories_post);
-        }
-    }
+    fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {}
 
     fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
         self.step += 1;
@@ -430,7 +346,12 @@ impl State for Board {
         //
         // Update: lazy_update() now should be ok as resources are fixed and agent updates remove and
         // set object where the mutation occurs in before_step().
+        //
+        // Update 2: Trading now moved to agent, grid only used for display and reading at start of step.
         self.agent_grid.lazy_update();
+        // Clear traded lookup
+        self.traded.clear();
+        self.step = step;
     }
 
     fn reset(&mut self) {
@@ -457,6 +378,28 @@ cfg_if! {
         }
     }
 }
+
+cfg_if! {
+if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
+    pub fn get_traders_read(board: &Board) -> Vec<Trader> {
+        board.agent_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
+    }
+} else {
+    pub fn get_traders_read(board: &Board) -> Vec<Trader> {
+        let mut traders: Vec<Trader> = Vec::new();
+        for i in  0..board.dim.0 {
+            for j in 0..board.dim.1 {
+                if let Some(mut traders_at_loc) = board.agent_grid.get_objects(&Int2D {x: i.into(), y: j.into() }) {
+                        traders.append(&mut traders_at_loc);
+                    }
+                }
+            }
+
+        traders
+    }
+}
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

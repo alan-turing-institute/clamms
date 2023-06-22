@@ -1,5 +1,9 @@
+use super::board::get_traders_read;
+use super::routing::step_distance;
 use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::{agent::Agent, location::Int2D};
+use krabmaga::hashbrown::HashSet;
+use rand::seq::SliceRandom;
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 // use std::error::Error;
@@ -10,7 +14,7 @@ use super::{
     forager::Forager,
     inventory::Inventory,
     policy::Policy,
-    routing::{get_resource_locations, get_trader_locations, get_traders, Position, Router},
+    routing::{get_resource_locations, get_trader_locations, Position, Router},
 };
 use crate::{config::core_config, model::board::Board};
 use krabmaga::utils;
@@ -255,6 +259,79 @@ pub fn settle_trade_on_counterparty(mut counterparty: Trader, offer: &Offer) -> 
 
 impl Agent for Trader {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
+        let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        if (board.step > 0) & board.has_trading {
+            // // get snapshot of agents inventories
+            // let traders_pre = get_traders(board);
+            // let inventories_pre: Vec<(i32, i32)> = traders_pre
+            //     .iter()
+            //     .map(|trader| {
+            //         (
+            //             trader.forager().count(&Resource::Food),
+            //             trader.forager().count(&Resource::Water),
+            //         )
+            //     })
+            //     .collect();
+
+            // Traders state is fixed so can be used to retrieve trader
+            let mut traders = get_traders_read(board);
+            traders.shuffle(&mut board.rng);
+
+            // Execute trade if available.
+            if !self.offer().is_trivial() {
+                // println!("Non triv offer");
+                if !board.traded.contains_key(&self.id()) {
+                    // println!("Not traded yet");
+                    let offer = self.offer();
+                    for counterparty in &traders {
+                        // println!("Counterparty: {}", counterparty);
+                        let counterparty_id = counterparty.id();
+                        // If already traded, continue
+                        if board.traded.contains_key(&counterparty_id) {
+                            continue;
+                        }
+                        if counterparty_id != self.id()
+                            && counterparty.offer().matched(&offer)
+                            && (step_distance(&self.forager.pos, &counterparty.forager.pos)
+                                < core_config().trade.MAX_TRADE_DISTANCE)
+                        {
+                            if core_config().simulation.VERBOSITY > 1 {
+                                println!("Trade between: {} and {}", self, counterparty);
+                            }
+                            board.traded.insert(self.id(), Some(counterparty_id));
+                            board.traded.insert(counterparty.id(), Some(self.id()));
+                            *self = settle_trade_on_counterparty(*self, &offer.invert());
+                            // Break as trade has occurred
+                            break;
+                        }
+                    }
+                    // If no trade possible, set to None
+                    board.traded.insert(self.id(), None);
+                } else if let Some(&Some(_)) = board.traded.get(&self.id()) {
+                    let offer = self.offer();
+                    *self = settle_trade_on_counterparty(*self, &offer.invert());
+                }
+            } else {
+                // Offer trivial, set to None
+                board.traded.insert(self.id(), None);
+            }
+
+            // re-read from agent grid and compare inventories to pre-trade snapshot
+            // get snapshot of agents inventories post trading
+            // let traders_post = get_traders(board);
+            // let inventories_post: Vec<(i32, i32)> = traders_post
+            //     .iter()
+            //     .map(|trader| {
+            //         (
+            //             trader.forager().count(&Resource::Food),
+            //             trader.forager().count(&Resource::Water),
+            //         )
+            //     })
+            //     .collect();
+            // println!("pre: {:?}", inventories_pre);
+            // println!("post: {:?}", inventories_post);
+        }
+
         // all trades were facilitated in `before_step` function on the `board`
         // next the agents choose an action given the agent_state post trading
         self.forager.step(state)
