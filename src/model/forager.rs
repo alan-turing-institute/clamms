@@ -116,17 +116,6 @@ impl Agent for Forager {
             self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
         }
 
-        // update agent position (executing action)
-        state.agent_grid.set_object_location(
-            // TODO: fix to not use a trader inside forager
-            Trader::new(*self),
-            &Int2D {
-                x: self.pos.x,
-                y: self.pos.y,
-            },
-        );
-        // END OF update_position.
-
         // resources depleted automatically after taking an action (even if Action::Stationary)
         self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);
         self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
@@ -142,6 +131,16 @@ impl Agent for Forager {
                 }
             }
         }
+
+        // Update agent stored in agent_grid, will not be readable until lazy_update after board update
+        state.agent_grid.set_object_location(
+            Trader::new(*self),
+            &Int2D {
+                x: self.pos.x,
+                y: self.pos.y,
+            },
+        );
+
         // push (s_n, a_n, r_n+1) to history
         state
             .agent_histories
