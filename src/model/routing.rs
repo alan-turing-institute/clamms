@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 
-use super::board::{get_traders_read, Board, Patch};
+use super::agent_api::AgentAPI;
+use super::board::{Board, Patch};
 use super::environment::Resource;
 use super::trader::Trader;
 use crate::model::forager::Direction;
@@ -115,7 +116,8 @@ pub fn get_resource_locations(resource: &Resource, state: &dyn State) -> Vec<Int
 
 pub fn get_trader_locations(state: &mut dyn State) -> Vec<Int2D> {
     let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
-    get_traders_read(board)
+    board
+        .get_agents()
         .iter()
         .map(|t| t.get_position())
         .collect()

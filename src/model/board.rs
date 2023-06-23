@@ -1,3 +1,4 @@
+use super::agent_api::AgentAPI;
 use super::environment::Resource;
 use super::history::History;
 use super::trader::{settle_trade_on_counterparty, Trade, Trader};
@@ -358,45 +359,41 @@ impl State for Board {
     }
 }
 
-// TODO: refactor into a trait to provide additional API on DenseGrid2D that is needed
-
+// Additional API for accessing board.
 cfg_if! {
     if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
-        pub fn get_agent_by_id(board: &mut Board, id: &u32) -> Trader {
-            board
-                .agent_grid
-                .get(&Trader::dummy(*id))
-                .expect("get agent by id")
+        impl AgentAPI<Trader> for Board {
+            fn get_agent_by_id(&self, id: &u32) -> Trader {
+                self.agent_grid
+                    .get(&Trader::dummy(*id))
+                    .expect("get agent by id")
+            }
+            fn get_agents(&self) -> Vec<Trader> {
+                self.agent_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
+            }
         }
     } else {
-        pub fn get_agent_by_id(board: &mut Board, id: &u32) -> Trader {
-            let loc = &board.agent_grid.get_location(&Trader::dummy(*id)).unwrap();
-            let traders: Vec<Trader> = board.agent_grid.get_objects(loc).unwrap();
-            *traders.into_iter().filter(|trader| trader.id() == *id).collect_vec().first().unwrap()
+        impl AgentAPI<Trader> for Board {
+            fn get_agent_by_id(&self, id: &u32) -> Trader {
+                let loc = &self.agent_grid.get_location(&Trader::dummy(*id)).unwrap();
+                let traders: Vec<Trader> = self.agent_grid.get_objects(loc).unwrap();
+                *traders.into_iter().filter(|trader| trader.id() == *id).collect_vec().first().unwrap()
+            }
+            fn get_agents(&self) -> Vec<Trader> {
+                let mut traders: Vec<Trader> = Vec::new();
+                for i in  0..self.dim.0 {
+                    for j in 0..self.dim.1 {
+                        // Gets objects from "read" state (start of time step)
+                        if let Some(mut traders_at_loc) = self.agent_grid.get_objects(&Int2D {x: i.into(), y: j.into() }) {
+                                traders.append(&mut traders_at_loc);
+                            }
+                        }
+                    }
+
+                traders
+            }
         }
     }
-}
-
-cfg_if! {
-if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
-    pub fn get_traders_read(board: &Board) -> Vec<Trader> {
-        board.agent_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
-    }
-} else {
-    pub fn get_traders_read(board: &Board) -> Vec<Trader> {
-        let mut traders: Vec<Trader> = Vec::new();
-        for i in  0..board.dim.0 {
-            for j in 0..board.dim.1 {
-                // Gets objects from "read" state (start of time step)
-                if let Some(mut traders_at_loc) = board.agent_grid.get_objects(&Int2D {x: i.into(), y: j.into() }) {
-                        traders.append(&mut traders_at_loc);
-                    }
-                }
-            }
-
-        traders
-    }
-}
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 pub mod action;
+pub mod agent_api;
 pub mod agent_state;
 pub mod board;
 pub mod environment;

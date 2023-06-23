@@ -1,4 +1,5 @@
-use super::board::get_traders_read;
+use super::agent_api::AgentAPI;
+// use super::board::get_traders_read;
 use super::routing::step_distance;
 use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::{agent::Agent, location::Int2D};
@@ -260,7 +261,7 @@ impl Agent for Trader {
         let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
         if (board.step > 0) & board.has_trading {
             // Traders state is fixed so can be used to retrieve trader
-            let mut traders = get_traders_read(board);
+            let mut traders = board.get_agents();
             traders.shuffle(&mut board.rng);
 
             // Execute trade if available.
