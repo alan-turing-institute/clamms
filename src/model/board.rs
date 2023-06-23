@@ -294,11 +294,8 @@ impl State for Board {
     fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {}
 
     fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
-        self.step += 1;
-
         // Updates as state
-        let mut step: i32 = self.step.try_into().unwrap();
-        step -= 1;
+        let step: i32 = i32::try_from(self.step).unwrap();
 
         // Update board model
         let board = self.as_any_mut().downcast_mut::<Board>().unwrap();
@@ -362,6 +359,7 @@ impl State for Board {
 }
 
 // TODO: refactor into a trait to provide additional API on DenseGrid2D that is needed
+
 cfg_if! {
     if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
         pub fn get_agent_by_id(board: &mut Board, id: &u32) -> Trader {
@@ -389,6 +387,7 @@ if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visuali
         let mut traders: Vec<Trader> = Vec::new();
         for i in  0..board.dim.0 {
             for j in 0..board.dim.1 {
+                // Gets objects from "read" state (start of time step)
                 if let Some(mut traders_at_loc) = board.agent_grid.get_objects(&Int2D {x: i.into(), y: j.into() }) {
                         traders.append(&mut traders_at_loc);
                     }
@@ -403,6 +402,7 @@ if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visuali
 #[cfg(test)]
 mod tests {
     use super::*;
+
     const TEST_LOCATIONS: &str = r#"{
         "Food": [
           {"x": 19,"y": 19},
@@ -427,5 +427,11 @@ mod tests {
             "{}",
             serde_json::to_string(&example_board((42, 42))).unwrap()
         );
+    }
+
+    #[test]
+    fn test_scheduler_event_ordering() {
+        // Add test to confirm/randomize order of events in PriorityQueue
+        todo!()
     }
 }

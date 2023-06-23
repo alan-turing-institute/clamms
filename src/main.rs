@@ -45,18 +45,17 @@ fn main() {
     } else {
         Board::new_with_seed(dim, num_agents, seed, model, has_trading)
     };
-    // Use simulate
-    // simulate!(state, step, 10, false);
 
     // Use scheduler and run directly once
     let mut schedule: Schedule = Schedule::new();
-    // let state = board.as_state_mut();
     board.init(&mut schedule);
     for _ in 0..n_steps {
+        // TODO: add random ordering using board.rng to events in scheduler so that agents are picked
+        // in a different random order each time during step.
         schedule.step(&mut board);
     }
 
-    // // Open output file and write history
+    // Open output file and write history
     let mut f = File::create("output.json").unwrap();
     writeln!(
         f,

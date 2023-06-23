@@ -8,8 +8,6 @@ use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 // use std::error::Error;
 use super::{
-    action::Action,
-    agent_state::AgentState,
     environment::Resource,
     forager::Forager,
     inventory::Inventory,
@@ -261,18 +259,6 @@ impl Agent for Trader {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
         let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
         if (board.step > 0) & board.has_trading {
-            // // get snapshot of agents inventories
-            // let traders_pre = get_traders(board);
-            // let inventories_pre: Vec<(i32, i32)> = traders_pre
-            //     .iter()
-            //     .map(|trader| {
-            //         (
-            //             trader.forager().count(&Resource::Food),
-            //             trader.forager().count(&Resource::Water),
-            //         )
-            //     })
-            //     .collect();
-
             // Traders state is fixed so can be used to retrieve trader
             let mut traders = get_traders_read(board);
             traders.shuffle(&mut board.rng);
@@ -315,25 +301,9 @@ impl Agent for Trader {
                 // Offer trivial, set to None
                 board.traded.insert(self.id(), None);
             }
-
-            // re-read from agent grid and compare inventories to pre-trade snapshot
-            // get snapshot of agents inventories post trading
-            // let traders_post = get_traders(board);
-            // let inventories_post: Vec<(i32, i32)> = traders_post
-            //     .iter()
-            //     .map(|trader| {
-            //         (
-            //             trader.forager().count(&Resource::Food),
-            //             trader.forager().count(&Resource::Water),
-            //         )
-            //     })
-            //     .collect();
-            // println!("pre: {:?}", inventories_pre);
-            // println!("post: {:?}", inventories_post);
         }
 
-        // all trades were facilitated in `before_step` function on the `board`
-        // next the agents choose an action given the agent_state post trading
+        // Trade has occurred before agent choosee next action
         self.forager.step(state)
     }
 }
