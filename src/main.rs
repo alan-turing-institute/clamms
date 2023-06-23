@@ -50,8 +50,6 @@ fn main() {
     let mut schedule: Schedule = Schedule::new();
     board.init(&mut schedule);
     for _ in 0..n_steps {
-        // TODO: add random ordering using board.rng to events in scheduler so that agents are picked
-        // in a different random order each time during step.
         schedule.step(&mut board);
     }
 

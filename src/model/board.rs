@@ -1,35 +1,27 @@
 use super::agent_api::AgentAPI;
 use super::environment::Resource;
 use super::history::History;
-use super::trader::{settle_trade_on_counterparty, Trade, Trader};
+use super::trader::Trader;
 use crate::config::core_config;
 
 use super::action::Action;
 use super::agent_state::{AgentState, AgentStateItems, InvLevel};
 use super::tabular_rl::SARSAModel;
 use super::{environment::EnvItem, forager::Forager};
-use crate::engine::fields::grid_option::GridOption;
-use crate::model::inventory::Inventory;
-use crate::model::routing::step_distance;
-use crate::model::trader;
 use itertools::Itertools;
 use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
-use krabmaga::engine::{
-    fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
-};
-use krabmaga::hashbrown::HashSet;
+use krabmaga::engine::{location::Int2D, state::State};
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
-use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
+
 #[derive(Clone, Copy, Debug)]
-#[allow(dead_code)]
 pub struct Patch {
     pub id: u32,
     pub env_item: EnvItem,

@@ -1,9 +1,6 @@
 use super::agent_api::AgentAPI;
-// use super::board::get_traders_read;
 use super::routing::step_distance;
-use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::{agent::Agent, location::Int2D};
-use krabmaga::hashbrown::HashSet;
 use rand::seq::SliceRandom;
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
@@ -12,13 +9,9 @@ use super::{
     environment::Resource,
     forager::Forager,
     inventory::Inventory,
-    policy::Policy,
-    routing::{get_resource_locations, get_trader_locations, Position, Router},
+    routing::{Position, Router},
 };
 use crate::{config::core_config, model::board::Board};
-use krabmaga::utils;
-
-use crate::engine::fields::grid_option::GridOption;
 
 #[derive(Clone, Copy)]
 pub struct Trader {
@@ -347,7 +340,7 @@ impl Inventory for Trader {
         self.forager.count(resource)
     }
 
-    fn acquire(&mut self, resource: &Resource, quantity: i32) -> () {
+    fn acquire(&mut self, resource: &Resource, quantity: i32) {
         self.forager.acquire(resource, quantity)
     }
 }
