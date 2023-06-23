@@ -2,6 +2,7 @@ use super::{agent_state::DiscrRep, history::History, q_table::QTable};
 use crate::config::core_config;
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use strum::IntoEnumIterator;
@@ -58,7 +59,7 @@ where
         }
     }
 
-    pub fn step(&mut self, t: i32, agent_hist: &HashMap<u32, History<T, S, L, A>>) {
+    pub fn step(&mut self, t: i32, agent_hist: &BTreeMap<u32, History<T, S, L, A>>) {
         let tau_: i32 = t - core_config().rl.SARSA_N as i32 - 1;
 
         // do update

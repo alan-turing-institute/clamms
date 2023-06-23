@@ -112,7 +112,7 @@ pub struct Board {
     pub agent_grid: DenseGrid2D<Trader>,
     pub dim: (u16, u16),
     pub num_agents: u8,
-    pub agent_histories: HashMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
+    pub agent_histories: BTreeMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
     pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
     pub loc2resources: HashMap<Int2D, Resource>,
     pub rng: StdRng,
@@ -135,7 +135,7 @@ impl Board {
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
-            agent_histories: HashMap::new(),
+            agent_histories: BTreeMap::new(),
             resource_locations: BTreeMap::new(),
             loc2resources: HashMap::new(),
             rng: StdRng::from_entropy(),
@@ -158,7 +158,7 @@ impl Board {
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
-            agent_histories: HashMap::new(),
+            agent_histories: BTreeMap::new(),
             resource_locations: BTreeMap::new(),
             loc2resources: HashMap::new(),
             rng: StdRng::seed_from_u64(seed),
@@ -195,7 +195,7 @@ impl Board {
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
-            agent_histories: HashMap::new(),
+            agent_histories: BTreeMap::new(),
             resource_locations,
             loc2resources,
             rng: StdRng::seed_from_u64(seed),
@@ -287,6 +287,9 @@ impl State for Board {
     fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {}
 
     fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
+        // TODO: add random ordering using board.rng to events in scheduler so that agents are picked
+        // in a different random order each time during step.
+
         // Updates as state
         let step: i32 = i32::try_from(self.step).unwrap();
 
