@@ -426,4 +426,31 @@ mod tests {
         // Add test to confirm/randomize order of events in PriorityQueue
         todo!()
     }
+
+    #[test]
+    fn test_board_update_with_trading() {
+        // Set-up small board with two agents (not on resources) within trading radius that will make inverse offers
+
+        // Get traders and check resource levels are as expected
+
+        // Run single step
+
+        // Update board
+
+        // Get traders and check resource levels are as expected
+        todo!()
+    }
+    #[test]
+    fn test_board_update_with_trading_and_on_resources() {
+        // Set-up small board with two agents (on resources) within trading radius that will make inverse offers
+
+        // Get traders and check resource levels are as expected
+
+        // Run single step
+
+        // Update board
+
+        // Get traders and check resource levels are as expected
+        todo!()
+    }
 }
