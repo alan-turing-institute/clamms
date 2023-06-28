@@ -231,6 +231,10 @@ impl State for Board {
 
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
+
+            // Set agent location
+            self.agent_grid
+                .set_object_location(agent, &agent.forager.pos)
         }
 
         let resource_lookup = if !self.loaded_map {
@@ -342,6 +346,10 @@ impl State for Board {
         //
         // Update 2: Trading now moved to agent, grid only used for display and reading at start of step.
         self.agent_grid.lazy_update();
+        // Update resource grid if step is first one only as resources only set in init
+        if self.step == 0 {
+            self.resource_grid.lazy_update();
+        }
         // Clear traded lookup
         self.traded.clear();
         self.step = step;
@@ -393,7 +401,94 @@ cfg_if! {
 
 #[cfg(test)]
 mod tests {
+    use krabmaga::engine::schedule::Schedule;
+
+    use crate::model::{init, inventory::Inventory};
+
     use super::*;
+
+    trait TestInit {
+        fn init_with_two_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule);
+    }
+
+    fn set_resources_random() {
+        todo!()
+    }
+
+    fn set_resources_from_map() {
+        todo!()
+    }
+
+    impl TestInit for Board {
+        fn init_with_two_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
+            self.step = 0;
+            let agent1 = Trader::new(Forager::new(0, Int2D { x: 2, y: 2 }, 0, 100));
+            let agent2 = Trader::new(Forager::new(1, Int2D { x: 2, y: 1 }, 100, 0));
+            let agent3 = Trader::new(Forager::new(2, Int2D { x: 4, y: 5 }, 0, 0));
+            self.agent_grid
+                .set_object_location(agent1, &agent1.forager.pos);
+            self.agent_grid
+                .set_object_location(agent2, &agent2.forager.pos);
+            self.agent_grid
+                .set_object_location(agent3, &agent3.forager.pos);
+            self.agent_histories.insert(0, History::new());
+            self.agent_histories.insert(1, History::new());
+            self.agent_histories.insert(2, History::new());
+            schedule.schedule_repeating(Box::new(agent1), 0., 0);
+            schedule.schedule_repeating(Box::new(agent2), 0., 0);
+            schedule.schedule_repeating(Box::new(agent3), 0., 0);
+            let resource_lookup = if !self.loaded_map {
+                // Init empty resource locations
+                for resource in Resource::iter() {
+                    self.resource_locations.insert(resource, Vec::new());
+                }
+                None
+            } else {
+                let mut resource_lookup: HashMap<Int2D, Resource> = HashMap::new();
+                self.resource_locations.iter().for_each(|(&res, v)| {
+                    for loc in v.iter() {
+                        resource_lookup.insert(*loc, res);
+                    }
+                });
+                Some(resource_lookup)
+            };
+
+            let mut id = 0;
+            for i in 0..self.dim.0 {
+                for j in 0..self.dim.1 {
+                    let pos = Int2D {
+                        x: i.into(),
+                        y: j.into(),
+                    };
+                    let item = if let Some(resource_lookup) = resource_lookup.as_ref() {
+                        if let Some(resource) = resource_lookup.get(&pos) {
+                            EnvItem::Resource(*resource)
+                        } else if self.rng.gen::<f32>() < core_config().world.LAND_PROP {
+                            EnvItem::Land
+                        } else {
+                            EnvItem::Bush
+                        }
+                    } else {
+                        self.rng.gen()
+                    };
+
+                    let patch = Patch::new(id, item);
+                    self.resource_grid.set_object_location(patch, &pos);
+                    if !self.loaded_map {
+                        if let EnvItem::Resource(resource) = patch.env_item {
+                            let v = self
+                                .resource_locations
+                                .get_mut(&resource)
+                                .expect("HashMap initialised for all resource types");
+                            v.push(pos.to_owned());
+                            self.loc2resources.insert(pos, resource);
+                        }
+                    }
+                    id += 1;
+                }
+            }
+        }
+    }
 
     const TEST_LOCATIONS: &str = r#"{
         "Food": [
@@ -427,30 +522,83 @@ mod tests {
         todo!()
     }
 
-    #[test]
-    fn test_board_update_with_trading() {
-        // Set-up small board with two agents (not on resources) within trading radius that will make inverse offers
-
-        // Get traders and check resource levels are as expected
-
-        // Run single step
-
-        // Update board
-
-        // Get traders and check resource levels are as expected
-        todo!()
+    /// Get inventories of agents on a board.
+    fn get_inventories(board: &Board) -> HashMap<u32, (i32, i32)> {
+        board
+            .get_agents()
+            .iter()
+            .fold(HashMap::new(), |mut acc, trader| {
+                acc.insert(
+                    trader.id(),
+                    (
+                        trader.forager().count(&Resource::Food),
+                        trader.forager().count(&Resource::Water),
+                    ),
+                );
+                acc
+            })
     }
+    /// Get inventories of agents on a board.
+    fn get_traders_display(board: &Board) -> HashMap<u32, String> {
+        board
+            .get_agents()
+            .iter()
+            .fold(HashMap::new(), |mut acc, trader| {
+                acc.insert(trader.id(), format!("{}", trader));
+                acc
+            })
+    }
+
     #[test]
-    fn test_board_update_with_trading_and_on_resources() {
-        // Set-up small board with two agents (on resources) within trading radius that will make inverse offers
+    fn test_board_update() {
+        init();
+        // Set-up small board with three agents and no resources within trading radius that will make inverse offers
+        let seed = core_config().world.RANDOM_SEED;
+        let num_agents = core_config().world.N_AGENTS;
+        let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+        let has_trading = core_config().world.HAS_TRADING;
+        let model = SARSAModel::new(
+            (0..num_agents).map(|n| n.into()).collect(),
+            AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
+            InvLevel::iter().collect::<Vec<InvLevel>>(),
+            Action::iter().collect::<Vec<Action>>(),
+            false,
+        );
+
+        let mut board = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
+            Board::new_with_seed_resources(dim, num_agents, seed, file_name, model, has_trading)
+        } else {
+            Board::new_with_seed(dim, num_agents, seed, model, has_trading)
+        };
+
+        // Use scheduler and run directly once
+        let mut schedule: Schedule = Schedule::new();
+        board.init_with_two_agents(&mut schedule);
 
         // Get traders and check resource levels are as expected
-
-        // Run single step
-
-        // Update board
-
-        // Get traders and check resource levels are as expected
-        todo!()
+        let traders0 = get_traders_display(&board);
+        let inv0 = get_inventories(&board);
+        println!("t=0 (before update): {:?}", traders0);
+        // No traders present before any scheduler step
+        assert!(inv0.is_empty());
+        // First step
+        schedule.step(&mut board);
+        let traders1 = get_traders_display(&board);
+        let inv1 = get_inventories(&board);
+        println!("t=1 (before update): {:?}", traders1);
+        assert_eq!(*inv1.get(&0).unwrap(), (-5, 95));
+        assert_eq!(*inv1.get(&1).unwrap(), (95, -5));
+        assert_eq!(*inv1.get(&2).unwrap(), (-5, -5));
+        // Second step
+        schedule.step(&mut board);
+        let traders2 = get_traders_display(&board);
+        let inv2 = get_inventories(&board);
+        println!("t=2 (before update): {:?}", traders2);
+        assert_eq!(*inv2.get(&0).unwrap(), (-9, 89));
+        assert_eq!(*inv2.get(&1).unwrap(), (89, -9));
+        assert_eq!(*inv2.get(&2).unwrap(), (-10, -10));
+        for (resource, loc) in board.loc2resources.iter() {
+            println!("Res: {:?}, loc: {}", loc, resource);
+        }
     }
 }

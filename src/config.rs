@@ -142,8 +142,13 @@ mod tests {
     #[test]
     fn test_deserialize() {
         let config_string = r##"
+        [simulation]
+        VERBOSITY = 1
+
         [world]
+        N_STEPS = 100
         RANDOM_SEED = 123
+        LAND_PROP = 0.7
 
         FOOD_ABUNDANCE = 0.1
         WATER_ABUNDANCE = 0.1
@@ -166,6 +171,23 @@ mod tests {
         FOOD_LOT_SIZE = 6
         WATER_LOT_SIZE = 2
         MAX_TRADE_LOTS = 1
+        INVENTORY_LEVEL_CRITICAL_LOW = 0
+        INVENTORY_LEVEL_LOW_MEDIUM = 10
+        INVENTORY_LEVEL_MEDIUM_HIGH = 50
+        DISTANCE_LEVEL_CRITICAL_LOW = 2
+        DISTANCE_LEVEL_LOW_MEDIUM = 10
+        DISTANCE_LEVEL_MEDIUM_HIGH = 30
+
+        [trade]
+        MAX_TRADE_DISTANCE = 2
+
+        [rl]
+        INIT_Q_VALUES = -10000.0
+        SARSA_N = 60
+        GAMMA = 0.99
+        ALPHA = 0.01
+        EPSILON = 0.01
+        MULTI_POLICY = false
         "##;
 
         let config: Config = parse_toml(config_string).unwrap();

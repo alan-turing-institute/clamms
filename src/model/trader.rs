@@ -20,7 +20,7 @@ pub struct Trader {
 
 impl Display for Trader {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(
+        write!(
             f,
             "ID: {}; Loc: ({}, {}); Food: {} Water: {}",
             self.id(),
@@ -259,7 +259,6 @@ impl Agent for Trader {
 
             // Execute trade if available.
             if !self.offer().is_trivial() {
-                // println!("Non triv offer");
                 if !board.traded.contains_key(&self.id()) {
                     // println!("Not traded yet");
                     let offer = self.offer();
@@ -287,9 +286,10 @@ impl Agent for Trader {
                     }
                     // If no trade possible, set to None
                     board.traded.insert(self.id(), None);
-                } else if let Some(&Some(_)) = board.traded.get(&self.id()) {
+                } else if let Some(&Some(id)) = board.traded.get(&self.id()) {
                     let offer = self.offer();
                     *self = settle_trade_on_counterparty(*self, &offer.invert());
+                    board.traded.insert(id, Some(self.id()));
                 }
             } else {
                 // Offer trivial, set to None

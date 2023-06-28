@@ -133,13 +133,9 @@ impl Agent for Forager {
         }
 
         // Update agent stored in agent_grid, will not be readable until lazy_update after board update
-        state.agent_grid.set_object_location(
-            Trader::new(*self),
-            &Int2D {
-                x: self.pos.x,
-                y: self.pos.y,
-            },
-        );
+        state
+            .agent_grid
+            .set_object_location(Trader::new(*self), &self.pos);
 
         // push (s_n, a_n, r_n+1) to history
         state
@@ -192,12 +188,15 @@ impl Hash for Forager {
 
 impl Forager {
     pub fn new(id: u32, pos: Int2D, food: i32, water: i32) -> Self {
-        Self {
+        let mut forager = Self {
             id,
             pos,
-            food,
-            water,
-        }
+            food: 0,
+            water: 0,
+        };
+        forager.acquire(&Resource::Food, food);
+        forager.acquire(&Resource::Water, water);
+        forager
     }
 
     pub fn id(&self) -> u32 {
