@@ -115,7 +115,6 @@ pub struct Board {
     pub num_agents: u8,
     pub agent_histories: BTreeMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
     pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
-    pub loc2resources: HashMap<Int2D, Resource>,
     pub rng: StdRng,
     pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     pub loaded_map: bool,
@@ -138,9 +137,6 @@ impl Board {
             num_agents,
             agent_histories: BTreeMap::new(),
             resource_locations: BTreeMap::new(),
-            // TODO: remove this field to simplify resource referencing
-            // e.g. use board.resource_grid.get_location() to get resources at start of step.
-            loc2resources: HashMap::new(),
             rng: StdRng::from_entropy(),
             model,
             loaded_map: false,
@@ -163,7 +159,6 @@ impl Board {
             num_agents,
             agent_histories: BTreeMap::new(),
             resource_locations: BTreeMap::new(),
-            loc2resources: HashMap::new(),
             rng: StdRng::seed_from_u64(seed),
             model,
             loaded_map: false,
@@ -182,15 +177,6 @@ impl Board {
         let path =
             std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join(map_locations);
         let resource_locations = read_resource_locations(&std::fs::read_to_string(path).unwrap());
-        let loc2resources = resource_locations.iter().fold(
-            HashMap::<Int2D, Resource>::new(),
-            |mut acc, (&resource, locs)| {
-                locs.iter().for_each(|loc| {
-                    acc.insert(*loc, resource);
-                });
-                acc
-            },
-        );
 
         Board {
             step: 0,
@@ -200,7 +186,6 @@ impl Board {
             num_agents,
             agent_histories: BTreeMap::new(),
             resource_locations,
-            loc2resources,
             rng: StdRng::seed_from_u64(seed),
             loaded_map: true,
             model,
@@ -309,6 +294,8 @@ impl State for Board {
         } else {
             self.set_resources_random();
         }
+        // Call lazy_update on the resource grid
+        self.resource_grid.lazy_update();
     }
 
     fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {}
@@ -355,13 +342,8 @@ impl State for Board {
     }
 
     fn update(&mut self, step: u64) {
-        // The agent_grid updated at end of timestep so set_object_location() is switched to "read"
-        // from "write"
+        // The agent_grid updated at end of timestep so set_object_location() is switched to "read" from "write"
         self.agent_grid.lazy_update();
-        // Update resource grid if step is first one only as resources only set in init
-        if self.step == 0 {
-            self.resource_grid.lazy_update();
-        }
         // Clear traded lookup
         self.traded.clear();
         self.step = step;
@@ -485,12 +467,13 @@ mod tests {
                                 .get_mut(&resource)
                                 .expect("HashMap initialised for all resource types");
                             v.push(pos.to_owned());
-                            self.loc2resources.insert(pos, resource);
                         }
                     }
                     id += 1;
                 }
             }
+            // Call lazy_update on the resource grid
+            self.resource_grid.lazy_update();
         }
     }
 
@@ -601,8 +584,5 @@ mod tests {
         assert_eq!(*inv2.get(&0).unwrap(), (-9, 89));
         assert_eq!(*inv2.get(&1).unwrap(), (89, -9));
         assert_eq!(*inv2.get(&2).unwrap(), (-10, -10));
-        for (resource, loc) in board.loc2resources.iter() {
-            println!("Res: {:?}, loc: {}", loc, resource);
-        }
     }
 }
