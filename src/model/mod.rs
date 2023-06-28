@@ -6,7 +6,7 @@ pub mod action;
 pub mod agent_api;
 pub mod agent_state;
 pub mod board;
-pub mod board_factory;
+pub mod board_generator;
 pub mod environment;
 pub mod forager;
 pub mod history;

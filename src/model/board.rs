@@ -1,5 +1,5 @@
 use super::agent_api::AgentAPI;
-use super::board_factory::read_resource_locations;
+use super::board_generator::read_resource_locations;
 use super::environment::Resource;
 use super::history::History;
 use super::trader::Trader;
@@ -351,7 +351,7 @@ cfg_if! {
 mod tests {
     use krabmaga::engine::schedule::Schedule;
 
-    use crate::model::{board_factory::example_board, init, inventory::Inventory};
+    use crate::model::{board_generator::example_board, init, inventory::Inventory};
 
     use super::*;
 
