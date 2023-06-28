@@ -98,7 +98,7 @@ pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
         for i in (dim.0 / 2 - 2)..=(dim.0 / 2 + 2) {
             let v = map.get_mut(&Resource::Water).unwrap();
             v.push(ClammsInt2D {
-                x: (i as i32 - 2 + river_width).into(),
+                x: (i as i32 - 2 + river_width),
                 y: j.into(),
             });
         }
@@ -303,7 +303,7 @@ impl State for Board {
 
     fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {}
 
-    fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
+    fn after_step(&mut self, _schedule: &mut krabmaga::engine::schedule::Schedule) {
         // TODO: add random ordering using board.rng to events in scheduler so that agents are picked
         // in a different random order each time during step.
 
