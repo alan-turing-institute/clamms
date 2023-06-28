@@ -280,6 +280,15 @@ impl Board {
             }
         }
     }
+    fn init_resources(&mut self) {
+        if self.loaded_map {
+            self.set_resources_from_map();
+        } else {
+            self.set_resources_random();
+        }
+        // Call lazy_update on the resource grid
+        self.resource_grid.lazy_update();
+    }
 }
 
 impl State for Board {
@@ -288,14 +297,8 @@ impl State for Board {
         self.step = 0;
         // Generate agents
         self.generate_agents_random(schedule);
-        // Generate and set resource grid
-        if self.loaded_map {
-            self.set_resources_from_map();
-        } else {
-            self.set_resources_random();
-        }
-        // Call lazy_update on the resource grid
-        self.resource_grid.lazy_update();
+        // Generate, set and lazy update resource grid
+        self.init_resources();
     }
 
     fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {}
@@ -423,57 +426,9 @@ mod tests {
             schedule.schedule_repeating(Box::new(agent1), 0., 0);
             schedule.schedule_repeating(Box::new(agent2), 0., 0);
             schedule.schedule_repeating(Box::new(agent3), 0., 0);
-            let resource_lookup = if !self.loaded_map {
-                // Init empty resource locations
-                for resource in Resource::iter() {
-                    self.resource_locations.insert(resource, Vec::new());
-                }
-                None
-            } else {
-                let mut resource_lookup: HashMap<Int2D, Resource> = HashMap::new();
-                self.resource_locations.iter().for_each(|(&res, v)| {
-                    for loc in v.iter() {
-                        resource_lookup.insert(*loc, res);
-                    }
-                });
-                Some(resource_lookup)
-            };
 
-            let mut id = 0;
-            for i in 0..self.dim.0 {
-                for j in 0..self.dim.1 {
-                    let pos = Int2D {
-                        x: i.into(),
-                        y: j.into(),
-                    };
-                    let item = if let Some(resource_lookup) = resource_lookup.as_ref() {
-                        if let Some(resource) = resource_lookup.get(&pos) {
-                            EnvItem::Resource(*resource)
-                        } else if self.rng.gen::<f32>() < core_config().world.LAND_PROP {
-                            EnvItem::Land
-                        } else {
-                            EnvItem::Bush
-                        }
-                    } else {
-                        self.rng.gen()
-                    };
-
-                    let patch = Patch::new(id, item);
-                    self.resource_grid.set_object_location(patch, &pos);
-                    if !self.loaded_map {
-                        if let EnvItem::Resource(resource) = patch.env_item {
-                            let v = self
-                                .resource_locations
-                                .get_mut(&resource)
-                                .expect("HashMap initialised for all resource types");
-                            v.push(pos.to_owned());
-                        }
-                    }
-                    id += 1;
-                }
-            }
-            // Call lazy_update on the resource grid
-            self.resource_grid.lazy_update();
+            // Generate and set resources
+            self.init_resources();
         }
     }
 
