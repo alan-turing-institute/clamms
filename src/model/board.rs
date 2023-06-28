@@ -137,6 +137,8 @@ impl Board {
             num_agents,
             agent_histories: BTreeMap::new(),
             resource_locations: BTreeMap::new(),
+            // TODO: remove this field to simplify resource referencing
+            // e.g. use board.resource_grid.get_location() to get resources at start of step.
             loc2resources: HashMap::new(),
             rng: StdRng::from_entropy(),
             model,
@@ -205,9 +207,20 @@ impl Board {
             traded: HashMap::new(),
         }
     }
+
+    /// Randomly sets resource locations from config.
+    fn set_resources_random(&mut self) {
+        todo!()
+    }
+
+    /// Sets resource locations based on loaded map.
+    fn set_resources_from_map(&mut self) {
+        todo!()
+    }
 }
 
 impl State for Board {
+    // TODO: refactor to call separate methods for init when random or from loaded map
     fn init(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
         self.step = 0;
         for n in 0..self.num_agents {
@@ -332,19 +345,8 @@ impl State for Board {
     }
 
     fn update(&mut self, step: u64) {
-        // lazy_update stops the field being searchable!
-        // TODO: in non-visualization feature, calls to update appear to be a bottleneck (flamegraph).
-        // Looks like underlying data structure repeatedly clones the vec of vec grid.
-        // Resources now have their own lookup by position. Agents are more complex as they are not
-        // fixed.
-        // Investigate a fix for updates when running without visualization with trading. A place to
-        // start might be to check if the data structures with the visualization feature's grid can
-        // also be used in the non-visualization feature.
-        //
-        // Update: lazy_update() now should be ok as resources are fixed and agent updates remove and
-        // set object where the mutation occurs in before_step().
-        //
-        // Update 2: Trading now moved to agent, grid only used for display and reading at start of step.
+        // The agent_grid updated at end of timestep so set_object_location() is switched to "read"
+        // from "write"
         self.agent_grid.lazy_update();
         // Update resource grid if step is first one only as resources only set in init
         if self.step == 0 {
@@ -408,19 +410,11 @@ mod tests {
     use super::*;
 
     trait TestInit {
-        fn init_with_two_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule);
-    }
-
-    fn set_resources_random() {
-        todo!()
-    }
-
-    fn set_resources_from_map() {
-        todo!()
+        fn init_with_test_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule);
     }
 
     impl TestInit for Board {
-        fn init_with_two_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
+        fn init_with_test_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
             self.step = 0;
             let agent1 = Trader::new(Forager::new(0, Int2D { x: 2, y: 2 }, 0, 100));
             let agent2 = Trader::new(Forager::new(1, Int2D { x: 2, y: 1 }, 100, 0));
@@ -573,7 +567,7 @@ mod tests {
 
         // Use scheduler and run directly once
         let mut schedule: Schedule = Schedule::new();
-        board.init_with_two_agents(&mut schedule);
+        board.init_with_test_agents(&mut schedule);
 
         // Get traders and check resource levels are as expected
         let traders0 = get_traders_display(&board);
