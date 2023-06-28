@@ -284,12 +284,11 @@ impl Agent for Trader {
                             break;
                         }
                     }
-                    // If no trade possible, set to None
-                    board.traded.insert(self.id(), None);
-                } else if let Some(&Some(id)) = board.traded.get(&self.id()) {
+                    // If no trade possible and not traded, set to None
+                    board.traded.entry(self.id()).or_insert(None);
+                } else if let Some(&Some(_)) = board.traded.get(&self.id()) {
                     let offer = self.offer();
                     *self = settle_trade_on_counterparty(*self, &offer.invert());
-                    board.traded.insert(id, Some(self.id()));
                 }
             } else {
                 // Offer trivial, set to None
