@@ -123,7 +123,9 @@ impl Agent for Forager {
         self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
 
         // if now on a resource, gather the resource
-        // NB. Check the "read" resource grid, assumes no update since start of state step
+        // Note: get_objects() checks the "read" resource grid, currently resources are fixed once
+        // initialised and do not update during the simulation. If resources change during a step,
+        // ensure the get_objects() returns updated resources as required.
         if let Some(patches) = board.resource_grid.get_objects(&self.pos) {
             patches.iter().for_each(|patch| {
                 if let Patch {
