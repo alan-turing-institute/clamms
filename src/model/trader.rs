@@ -129,8 +129,6 @@ pub trait Trade {
         offered_lot_size: u32,
         other_lot_size: u32,
     ) -> bool;
-    /// Settles a trade on *both* this trader *and* the counterparty.
-    fn settle_trade(&mut self, counterparty: &mut Trader);
     /// Applies their offer during trading.
     fn apply_offer(&mut self);
 }
@@ -192,30 +190,6 @@ impl Trade for Trader {
             > demanded_count + ((demanded_lots + 1) * (demanded_lot_size as i32))
     }
 
-    fn settle_trade(&mut self, counterparty: &mut Trader) {
-        // Settle according to the offer of *this* trader (not the counterparty's offer).
-        let offer = self.offer();
-        if !offer.matched(&counterparty.offer()) {
-            panic!("Trade can't be settled!");
-        }
-
-        // Settle food inventory for both agents.
-        self.acquire(&Resource::Food, offer.food_delta());
-        counterparty.acquire(&Resource::Food, -1 * offer.food_delta());
-
-        // Settle water inventory for both agents.
-        self.acquire(&Resource::Water, offer.water_delta());
-        counterparty.acquire(&Resource::Water, -1 * offer.water_delta());
-
-        if core_config().simulation.VERBOSITY > 1 {
-            println!(
-                "***** TRADE SETTLED FOR {:?} BETWEEN TRADER {} and TRADER {} *****",
-                offer,
-                self.id(),
-                counterparty.id()
-            )
-        }
-    }
     fn apply_offer(&mut self) {
         let offer = self.offer();
         // Settle food inventory.
