@@ -241,6 +241,7 @@ impl Agent for Trader {
                         if board.traded.contains_key(&counterparty_id) {
                             continue;
                         }
+                        // If not self AND offer is matched AND agents are close enough, perform trade
                         if counterparty_id != self.id()
                             && counterparty.offer().matched(&offer)
                             && (step_distance(&self.forager.pos, &counterparty.forager.pos)
