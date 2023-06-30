@@ -30,13 +30,14 @@ fn main() {
     let num_agents = core_config().world.N_AGENTS;
     let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
     let has_trading = core_config().world.HAS_TRADING;
+    let multi_policy = core_config().rl.MULTI_POLICY;
 
     let model = SARSAModel::new(
         (0..num_agents).map(|n| n.into()).collect(),
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
         Action::iter().collect::<Vec<Action>>(),
-        false,
+        multi_policy,
     );
 
     // let mut board = Board::new_with_seed(dim, num_agents, seed, model);
@@ -71,13 +72,14 @@ fn main() {
     let seed = core_config().world.RANDOM_SEED;
     let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
     let has_trading = core_config().world.HAS_TRADING;
+    let multi_policy = core_config().rl.MULTI_POLICY;
 
     let model = SARSAModel::new(
         (0..num_agents).map(|n| n.into()).collect(),
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
         Action::iter().collect::<Vec<Action>>(),
-        false,
+        multi_policy,
     );
 
     let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
