@@ -66,7 +66,7 @@ where
         if tau_ >= 0 {
             // update all agents in turn
             for (id, hist) in agent_hist.iter() {
-                let tab = self.get_table_by_id_mut(self.policy_id(*id));
+                let tab = self.get_table_by_id_mut(*id);
                 let traj = &hist.trajectory;
 
                 let tau = tau_ as usize;
