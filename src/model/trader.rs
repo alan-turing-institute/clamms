@@ -53,7 +53,7 @@ impl Trader {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Offer(i32, i32);
 
 // #[derive(Error, Debug)]
@@ -149,7 +149,8 @@ impl Trade for Trader {
             count_water,
             core_config().agent.FOOD_LOT_SIZE,
             core_config().agent.WATER_LOT_SIZE,
-        ) {
+        ) && (count_food + current_offer.0) > core_config().trade.FOOD_MIN_INVENTORY_LEVEL
+        {
             current_offer.adjust_by_one(true);
         }
         if !current_offer.is_trivial() {
@@ -162,7 +163,8 @@ impl Trade for Trader {
             count_food,
             core_config().agent.WATER_LOT_SIZE,
             core_config().agent.FOOD_LOT_SIZE,
-        ) {
+        ) && (count_water + current_offer.1) > core_config().trade.WATER_MIN_INVENTORY_LEVEL
+        {
             current_offer.adjust_by_one(false);
         }
         current_offer
@@ -316,6 +318,8 @@ impl Hash for Trader {
 
 #[cfg(test)]
 mod tests {
+    use crate::model::init;
+
     use super::*;
 
     #[test]
@@ -332,5 +336,40 @@ mod tests {
         assert!(!offer.matched(&Offer::new(3, -3)));
         assert!(!offer.matched(&Offer::new(2, -2)));
         assert!(!offer.matched(&Offer::new(2, -1)));
+    }
+
+    #[test]
+    fn test_trader_offer() {
+        // Test init has FOOD_LOT_SIZE and WATER_LOT_SIZE equal to 1 and MIN_INVENTORY_LEVEL = 0
+        init();
+        let pos = Int2D { x: 0, y: 0 };
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 8, 5)).offer(),
+            Offer::new(-1, 1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 7, 5)).offer(),
+            Offer::new(0, 0)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, -8, -5)).offer(),
+            Offer::new(0, 0)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 2, -1)).offer(),
+            Offer::new(-1, 1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 1, -2)).offer(),
+            Offer::new(-1, 1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, -2, 1)).offer(),
+            Offer::new(1, -1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 0, -1)).offer(),
+            Offer::new(0, 0)
+        );
     }
 }
