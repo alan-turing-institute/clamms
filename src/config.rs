@@ -122,6 +122,11 @@ pub struct TradeConfig {
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct SimulationConfig {
+    // TODO: consider replacing with a logging
+    /// Increasing verbosity levels of printed output:
+    ///   - 0: No printed output
+    ///   - 1: Verbose printed output
+    ///   - 2 or more: Additionally verbose printed output
     pub VERBOSITY: u32,
 }
 /// Wrapper struct for parsing the `core` table.

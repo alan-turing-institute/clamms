@@ -9,6 +9,8 @@ use super::reward::Reward;
 use super::routing::{get_resource_locations, get_trader_locations, Position, Router};
 use super::trader::Trader;
 use crate::config::core_config;
+use crate::model::board::Patch;
+use crate::model::environment::EnvItem;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
@@ -87,19 +89,19 @@ impl Policy for Forager {
 impl Agent for Forager {
     fn step(&mut self, state: &mut dyn State) {
         // now downcasting to a mutable reference
-        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
 
         // observe current agent state
-        let agent_state = self.agent_state(state);
+        let agent_state = self.agent_state(board);
 
         // select action from policy
-        let action = self.chose_action(state, &agent_state);
+        let action = self.chose_action(board, &agent_state);
 
         // route agent based on action
         let route = match action {
-            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state, None),
-            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state, None),
-            Action::ToAgent => self.try_move_towards_agent(state, None),
+            Action::ToFood => self.try_move_towards_resource(&Resource::Food, board, None),
+            Action::ToWater => self.try_move_towards_resource(&Resource::Water, board, None),
+            Action::ToAgent => self.try_move_towards_agent(board, None),
             _ => None,
         };
 
@@ -112,8 +114,8 @@ impl Agent for Forager {
                 Direction::West => self.pos.x -= 1,
             }
             // Clamp positions to be 1 <= pos < dim
-            self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
-            self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
+            self.pos.x = self.pos.x.clamp(1, (board.dim.0 - 1).into());
+            self.pos.y = self.pos.y.clamp(1, (board.dim.1 - 1).into());
         }
 
         // resources depleted automatically after taking an action (even if Action::Stationary)
@@ -121,24 +123,35 @@ impl Agent for Forager {
         self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
 
         // if now on a resource, gather the resource
-        if let Some(item) = state.loc2resources.get(&self.pos) {
-            match item {
-                Resource::Food => {
-                    self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
+        // Note: get_objects() checks the "read" resource grid, currently resources are fixed once
+        // initialised and do not update during the simulation. If resources change during a step,
+        // ensure the get_objects() returns updated resources as required.
+        if let Some(patches) = board.resource_grid.get_objects(&self.pos) {
+            patches.iter().for_each(|patch| {
+                if let Patch {
+                    id: _,
+                    env_item: EnvItem::Resource(resource),
+                } = patch
+                {
+                    match resource {
+                        Resource::Food => {
+                            self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
+                        }
+                        Resource::Water => {
+                            self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
+                        }
+                    }
                 }
-                Resource::Water => {
-                    self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
-                }
-            }
+            })
         }
 
         // Update agent stored in agent_grid, will not be readable until lazy_update after board update
-        state
+        board
             .agent_grid
             .set_object_location(Trader::new(*self), &self.pos);
 
         // push (s_n, a_n, r_n+1) to history
-        state
+        board
             .agent_histories
             .get_mut(&self.id())
             .expect("HashMap initialised for all agents")

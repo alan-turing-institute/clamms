@@ -1,12 +1,14 @@
 use krabmaga::*;
 mod config;
 mod model;
+use crate::config::core_config;
 use crate::model::{
     action::Action,
     agent_state::{AgentStateItems, InvLevel},
     board::Board,
     tabular_rl::SARSAModel,
 };
+use krabmaga::engine::{schedule::Schedule, state::State};
 use strum::IntoEnumIterator;
 
 // Visualization specific imports
@@ -22,21 +24,19 @@ mod visualization;
 // Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
-    use crate::config::core_config;
-    use krabmaga::engine::{schedule::Schedule, state::State};
-
     let seed = core_config().world.RANDOM_SEED;
     let n_steps = core_config().world.N_STEPS;
     let num_agents = core_config().world.N_AGENTS;
     let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
     let has_trading = core_config().world.HAS_TRADING;
+    let multi_policy = core_config().rl.MULTI_POLICY;
 
     let model = SARSAModel::new(
         (0..num_agents).map(|n| n.into()).collect(),
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
         Action::iter().collect::<Vec<Action>>(),
-        false,
+        multi_policy,
     );
 
     // let mut board = Board::new_with_seed(dim, num_agents, seed, model);
@@ -66,18 +66,18 @@ fn main() {
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
-    use config::core_config;
     let num_agents = core_config().world.N_AGENTS;
     let seed = core_config().world.RANDOM_SEED;
     let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
     let has_trading = core_config().world.HAS_TRADING;
+    let multi_policy = core_config().rl.MULTI_POLICY;
 
     let model = SARSAModel::new(
         (0..num_agents).map(|n| n.into()).collect(),
         AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
         InvLevel::iter().collect::<Vec<InvLevel>>(),
         Action::iter().collect::<Vec<Action>>(),
-        false,
+        multi_policy,
     );
 
     let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
