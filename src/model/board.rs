@@ -490,7 +490,7 @@ mod tests {
                 acc
             })
     }
-    /// Get inventories of agents on a board.
+    /// Get string representation of traders on a board.
     fn get_traders_display(board: &Board) -> HashMap<u32, String> {
         board
             .get_agents()
