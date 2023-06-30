@@ -16,6 +16,7 @@ use krabmaga::engine::schedule::Schedule;
 use krabmaga::engine::{location::Int2D, state::State};
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -120,6 +121,7 @@ pub struct Board {
     pub loaded_map: bool,
     pub has_trading: bool,
     pub traded: HashMap<u32, Option<u32>>,
+    pub current_traders: Vec<Trader>,
 }
 
 impl Board {
@@ -142,6 +144,7 @@ impl Board {
             loaded_map: false,
             has_trading,
             traded: HashMap::new(),
+            current_traders: Vec::new(),
         }
     }
     pub fn new_with_seed(
@@ -164,6 +167,7 @@ impl Board {
             loaded_map: false,
             has_trading,
             traded: HashMap::new(),
+            current_traders: Vec::new(),
         }
     }
     pub fn new_with_seed_resources(
@@ -191,6 +195,7 @@ impl Board {
             model,
             has_trading,
             traded: HashMap::new(),
+            current_traders: Vec::new(),
         }
     }
 
@@ -301,7 +306,11 @@ impl State for Board {
         self.init_resources();
     }
 
-    fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {}
+    fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {
+        // Get current agents in random order from grid to avoid repeat lookups
+        self.current_traders = self.get_agents();
+        self.current_traders.shuffle(&mut self.rng);
+    }
 
     fn after_step(&mut self, _schedule: &mut krabmaga::engine::schedule::Schedule) {
         // TODO: add random ordering using board.rng to events in scheduler so that agents are picked
@@ -347,8 +356,9 @@ impl State for Board {
     fn update(&mut self, step: u64) {
         // The agent_grid updated at end of timestep so set_object_location() is switched to "read" from "write"
         self.agent_grid.lazy_update();
-        // Clear traded lookup
+        // Clear traded lookup and current traders
         self.traded.clear();
+        self.current_traders.clear();
         self.step = step;
     }
 

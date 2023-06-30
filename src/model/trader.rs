@@ -131,6 +131,8 @@ pub trait Trade {
     ) -> bool;
     /// Settles a trade on *both* this trader *and* the counterparty.
     fn settle_trade(&mut self, counterparty: &mut Trader);
+    /// Applies their offer during trading.
+    fn apply_offer(&mut self);
 }
 
 impl Trade for Trader {
@@ -214,56 +216,26 @@ impl Trade for Trader {
             )
         }
     }
-}
-
-pub fn settle_trade_on_counterparty(mut counterparty: Trader, offer: &Offer) -> Trader {
-    if !offer.matched(&counterparty.offer()) {
-        panic!("Trade can't be settled!");
+    fn apply_offer(&mut self) {
+        let offer = self.offer();
+        // Settle food inventory.
+        self.acquire(&Resource::Food, offer.food_delta());
+        // Settle water inventory.
+        self.acquire(&Resource::Water, offer.water_delta());
     }
-    // if !offer.matched(&counterparty.offer()) {
-    //     // Do nothing.
-    //     return counterparty
-    // }
-    if core_config().simulation.VERBOSITY > 1 {
-        println!(
-            "***** TRADE SETTLED FOR {:?} WITH TRADER {} *****",
-            offer,
-            counterparty.id()
-        );
-        println!(
-            "Prior inventory: Food: {}, Water: {}",
-            counterparty.forager.count(&Resource::Food),
-            counterparty.forager.count(&Resource::Water)
-        );
-    }
-    // Settle inventories.
-    counterparty.acquire(&Resource::Food, -1 * offer.food_delta());
-    counterparty.acquire(&Resource::Water, -1 * offer.water_delta());
-    if core_config().simulation.VERBOSITY > 1 {
-        println!(
-            "Final inventory: Food: {}, Water: {}",
-            counterparty.forager.count(&Resource::Food),
-            counterparty.forager.count(&Resource::Water)
-        );
-    }
-    counterparty
 }
 
 impl Agent for Trader {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
         let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        // Borrow traders snapshot captured at start of current board step in before_step
+        let traders = &board.current_traders;
         if (board.step > 0) & board.has_trading {
-            // Traders state is fixed so can be used to retrieve trader
-            let mut traders = board.get_agents();
-            traders.shuffle(&mut board.rng);
-
             // Execute trade if available.
             if !self.offer().is_trivial() {
                 if !board.traded.contains_key(&self.id()) {
-                    // println!("Not traded yet");
                     let offer = self.offer();
-                    for counterparty in &traders {
-                        // println!("Counterparty: {}", counterparty);
+                    for counterparty in traders {
                         let counterparty_id = counterparty.id();
                         // If already traded, continue
                         if board.traded.contains_key(&counterparty_id) {
@@ -274,21 +246,27 @@ impl Agent for Trader {
                             && (step_distance(&self.forager.pos, &counterparty.forager.pos)
                                 < core_config().trade.MAX_TRADE_DISTANCE)
                         {
+                            // Print trade when vverbose
                             if core_config().simulation.VERBOSITY > 1 {
                                 println!("Trade between: {} and {}", self, counterparty);
                             }
+                            // Add trade to lookup of which agents have traded
                             board.traded.insert(self.id(), Some(counterparty_id));
                             board.traded.insert(counterparty.id(), Some(self.id()));
-                            *self = settle_trade_on_counterparty(*self, &offer.invert());
-                            // Break as trade has occurred
+
+                            // Apply offer to inventory, counterparty will do corresponding call
+                            // during their update
+                            self.apply_offer();
+
+                            // Break - trade has occurred with only single trade currently implemented
                             break;
                         }
                     }
                     // If no trade possible and not traded, set to None
                     board.traded.entry(self.id()).or_insert(None);
                 } else if let Some(&Some(_)) = board.traded.get(&self.id()) {
-                    let offer = self.offer();
-                    *self = settle_trade_on_counterparty(*self, &offer.invert());
+                    // Apply offer previously initiated by a counterparty during their agent step
+                    self.apply_offer();
                 }
             } else {
                 // Offer trivial, set to None
