@@ -1,17 +1,16 @@
 use super::action::Action;
 use super::agent_state::{AgentState, DiscrRep};
 use super::board::Board;
-use super::environment::{EnvItem, Resource};
+use super::environment::Resource;
 use super::history::SAR;
 use super::inventory::Inventory;
 use super::policy::Policy;
 use super::reward::Reward;
-use super::routing::{
-    get_resource_locations, get_trader_locations, move_towards, Position, Router,
-};
+use super::routing::{get_resource_locations, get_trader_locations, Position, Router};
 use super::trader::Trader;
 use crate::config::core_config;
-use krabmaga::engine::fields::field_2d::Location2D;
+use crate::model::board::Patch;
+use crate::model::environment::EnvItem;
 use krabmaga::engine::state::State;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::{
@@ -90,19 +89,19 @@ impl Policy for Forager {
 impl Agent for Forager {
     fn step(&mut self, state: &mut dyn State) {
         // now downcasting to a mutable reference
-        let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
 
         // observe current agent state
-        let agent_state = self.agent_state(state);
+        let agent_state = self.agent_state(board);
 
         // select action from policy
-        let action = self.chose_action(state, &agent_state);
+        let action = self.chose_action(board, &agent_state);
 
         // route agent based on action
         let route = match action {
-            Action::ToFood => self.try_move_towards_resource(&Resource::Food, state, None),
-            Action::ToWater => self.try_move_towards_resource(&Resource::Water, state, None),
-            Action::ToAgent => self.try_move_towards_agent(state, None),
+            Action::ToFood => self.try_move_towards_resource(&Resource::Food, board, None),
+            Action::ToWater => self.try_move_towards_resource(&Resource::Water, board, None),
+            Action::ToAgent => self.try_move_towards_agent(board, None),
             _ => None,
         };
 
@@ -115,45 +114,50 @@ impl Agent for Forager {
                 Direction::West => self.pos.x -= 1,
             }
             // Clamp positions to be 1 <= pos < dim
-            self.pos.x = self.pos.x.clamp(1, (state.dim.0 - 1).into());
-            self.pos.y = self.pos.y.clamp(1, (state.dim.1 - 1).into());
+            self.pos.x = self.pos.x.clamp(1, (board.dim.0 - 1).into());
+            self.pos.y = self.pos.y.clamp(1, (board.dim.1 - 1).into());
         }
-
-        // update agent position (executing action)
-        state.agent_grid.set_object_location(
-            // TODO: fix to not use a trader inside forager
-            Trader::new(*self),
-            &Int2D {
-                x: self.pos.x,
-                y: self.pos.y,
-            },
-        );
-        // END OF update_position.
 
         // resources depleted automatically after taking an action (even if Action::Stationary)
         self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);
         self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
 
         // if now on a resource, gather the resource
-        let item = state.resource_grid.get_objects(&self.pos).unwrap()[0].env_item;
-        match item {
-            EnvItem::Land | EnvItem::Bush => {}
-            EnvItem::Resource(Resource::Food) => {
-                self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
-            }
-            EnvItem::Resource(Resource::Water) => {
-                self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
-            }
+        // Note: get_objects() checks the "read" resource grid, currently resources are fixed once
+        // initialised and do not update during the simulation. If resources change during a step,
+        // ensure the get_objects() returns updated resources as required.
+        if let Some(patches) = board.resource_grid.get_objects(&self.pos) {
+            patches.iter().for_each(|patch| {
+                if let Patch {
+                    id: _,
+                    env_item: EnvItem::Resource(resource),
+                } = patch
+                {
+                    match resource {
+                        Resource::Food => {
+                            self.acquire(&Resource::Food, core_config().agent.FOOD_ACQUIRE_RATE)
+                        }
+                        Resource::Water => {
+                            self.acquire(&Resource::Water, core_config().agent.WATER_ACQUIRE_RATE)
+                        }
+                    }
+                }
+            })
         }
 
+        // Update agent stored in agent_grid, will not be readable until lazy_update after board update
+        board
+            .agent_grid
+            .set_object_location(Trader::new(*self), &self.pos);
+
         // push (s_n, a_n, r_n+1) to history
-        state
+        board
             .agent_histories
             .get_mut(&self.id())
             .expect("HashMap initialised for all agents")
             .push(SAR::new(
                 agent_state,
-                action.clone(),
+                action,
                 Reward::from_inv_count_linear(self.food, self.water),
             ));
 
@@ -197,19 +201,22 @@ impl Hash for Forager {
 
 impl Forager {
     pub fn new(id: u32, pos: Int2D, food: i32, water: i32) -> Self {
-        Self {
+        let mut forager = Self {
             id,
             pos,
-            food,
-            water,
-        }
+            food: 0,
+            water: 0,
+        };
+        forager.acquire(&Resource::Food, food);
+        forager.acquire(&Resource::Water, water);
+        forager
     }
 
     pub fn id(&self) -> u32 {
         self.id
     }
 
-    pub fn agent_state(&self, state: &dyn krabmaga::engine::state::State) -> AgentState {
+    pub fn agent_state(&self, state: &mut dyn krabmaga::engine::state::State) -> AgentState {
         let min_steps_to_food = self.min_steps_to(get_resource_locations(&Resource::Food, state));
         let min_steps_to_water = self.min_steps_to(get_resource_locations(&Resource::Water, state));
 

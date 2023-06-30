@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 
+use super::agent_api::AgentAPI;
 use super::board::{Board, Patch};
 use super::environment::Resource;
 use super::trader::Trader;
@@ -9,6 +10,7 @@ use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::{location::Int2D, state::State};
 use rand::distributions::{Bernoulli, Distribution};
 use rand::rngs::StdRng;
+use rand::Rng;
 // use krabmaga::utils;
 
 pub trait Router: Position {
@@ -35,7 +37,7 @@ pub trait Router: Position {
         // Downcast to get access to rng
         let state = state.as_any_mut().downcast_mut::<Board>().unwrap();
         match target {
-            None => rand::random(),
+            None => state.rng.gen(),
             Some(pos) => {
                 if pos.eq(&self.get_position()) {
                     return None;
@@ -75,30 +77,33 @@ pub trait Router: Position {
         self.find_nearest(&get_resource_locations(resource, state), horizon)
     }
 
-    fn find_nearest_trader(&self, state: &dyn State, horizon: Option<u32>) -> Option<Int2D> {
+    fn find_nearest_trader(&self, state: &mut dyn State, horizon: Option<u32>) -> Option<Int2D> {
         self.find_nearest(&get_trader_locations(state), horizon)
     }
 }
 
-// TODO: add trading horizon parameter here.
-/// This returns *clones* on the Traders. Therefore it should remain private becuase of the risk of the clones getting out of sync.
-pub fn get_traders(state: &dyn State) -> Vec<Trader> {
-    let state = state.as_any().downcast_ref::<Board>().unwrap();
+// // TODO: add trading horizon parameter here.
+// /// This returns *clones* on the Traders. Therefore it should remain private becuase of the risk of the clones getting out of sync.
+// pub fn get_traders(state: &dyn State) -> Vec<Trader> {
+//     let state = state.as_any().downcast_ref::<Board>().unwrap();
 
-    cfg_if! {
-        if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
-            state.agent_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
-        } else {
-            let mut traders = Vec::new();
-            for ref_cell in state.agent_grid.locs.iter() {
-                for x in ref_cell.borrow().iter() {
-                    traders.append(&mut x.clone());
-                }
-            }
-            traders
-        }
-    }
-}
+//     cfg_if! {
+//         if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
+//             state.agent_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
+//         } else {
+//             let mut traders = Vec::new();
+//             for ref_cell in state.agent_grid.locs.iter() {
+//                 for traders_at_loc in ref_cell.borrow().iter() {
+//                     // Slow clone
+//                     // traders.append(&mut traders_at_loc.clone());
+//                     // TODO: This should be faster to avoid cloning vecs
+//                     traders_at_loc.iter().for_each(|trader| traders.push(*trader));
+//                 }
+//             }
+//             traders
+//         }
+//     }
+// }
 
 pub fn get_resource_locations(resource: &Resource, state: &dyn State) -> Vec<Int2D> {
     let state = state.as_any().downcast_ref::<Board>().unwrap();
@@ -109,8 +114,10 @@ pub fn get_resource_locations(resource: &Resource, state: &dyn State) -> Vec<Int
         .to_owned()
 }
 
-pub fn get_trader_locations(state: &dyn State) -> Vec<Int2D> {
-    get_traders(state)
+pub fn get_trader_locations(state: &mut dyn State) -> Vec<Int2D> {
+    let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
+    board
+        .get_agents()
         .iter()
         .map(|t| t.get_position())
         .collect()

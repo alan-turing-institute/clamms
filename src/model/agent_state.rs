@@ -16,7 +16,7 @@ pub struct AgentState {
     pub min_steps_to_trader: Option<u32>,
 }
 
-#[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq)]
+#[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq, Serialize, Deserialize)]
 pub enum AgentStateItems {
     Food,
     Water,
@@ -140,7 +140,7 @@ impl AgentState {
     // }
 }
 
-#[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq)]
+#[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq, Serialize, Deserialize)]
 pub enum InvLevel {
     Critical,
     Low,

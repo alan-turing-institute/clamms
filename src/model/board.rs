@@ -1,23 +1,19 @@
+use super::agent_api::AgentAPI;
 use super::environment::Resource;
 use super::history::History;
-use super::trader::{settle_trade_on_counterparty, Trade, Trader};
+use super::trader::Trader;
 use crate::config::core_config;
 
 use super::action::Action;
 use super::agent_state::{AgentState, AgentStateItems, InvLevel};
 use super::tabular_rl::SARSAModel;
 use super::{environment::EnvItem, forager::Forager};
-use crate::engine::fields::grid_option::GridOption;
-use crate::model::inventory::Inventory;
-use crate::model::routing::step_distance;
-use crate::model::trader;
+use itertools::Itertools;
 use krabmaga::cfg_if::cfg_if;
 use krabmaga::engine::fields::dense_object_grid_2d::DenseGrid2D;
 use krabmaga::engine::fields::field::Field;
-use krabmaga::engine::{
-    fields::sparse_object_grid_2d::SparseGrid2D, location::Int2D, state::State,
-};
-use krabmaga::hashbrown::HashSet;
+use krabmaga::engine::schedule::Schedule;
+use krabmaga::engine::{location::Int2D, state::State};
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -26,8 +22,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::hash::{Hash, Hasher};
 use strum::IntoEnumIterator;
+
 #[derive(Clone, Copy, Debug)]
-#[allow(dead_code)]
 pub struct Patch {
     pub id: u32,
     pub env_item: EnvItem,
@@ -103,7 +99,7 @@ pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
         for i in (dim.0 / 2 - 2)..=(dim.0 / 2 + 2) {
             let v = map.get_mut(&Resource::Water).unwrap();
             v.push(ClammsInt2D {
-                x: (i as i32 - 2 + river_width).into(),
+                x: (i as i32 - 2 + river_width),
                 y: j.into(),
             });
         }
@@ -111,19 +107,21 @@ pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
     map
 }
 
+// TODO: add a fast lookup by location for resources
 pub struct Board {
     pub step: u64,
     pub resource_grid: DenseGrid2D<Patch>,
-    // pub forager_grid: DenseGrid2D<Forager>,
     pub agent_grid: DenseGrid2D<Trader>,
     pub dim: (u16, u16),
     pub num_agents: u8,
-    pub agent_histories: HashMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
-    // TODO: consider refactor to BTreeMap if issues occur around deterministic iteration
+    pub agent_histories: BTreeMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>,
     pub resource_locations: BTreeMap<Resource, Vec<Int2D>>,
     pub rng: StdRng,
     pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     pub loaded_map: bool,
+    pub has_trading: bool,
+    pub traded: HashMap<u32, Option<u32>>,
+    pub current_traders: Vec<Trader>,
 }
 
 impl Board {
@@ -131,19 +129,22 @@ impl Board {
         dim: (u16, u16),
         num_agents: u8,
         model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+        has_trading: bool,
     ) -> Board {
         Board {
             step: 0,
-            // forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
-            agent_histories: HashMap::new(),
+            agent_histories: BTreeMap::new(),
             resource_locations: BTreeMap::new(),
             rng: StdRng::from_entropy(),
             model,
             loaded_map: false,
+            has_trading,
+            traded: HashMap::new(),
+            current_traders: Vec::new(),
         }
     }
     pub fn new_with_seed(
@@ -151,19 +152,22 @@ impl Board {
         num_agents: u8,
         seed: u64,
         model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+        has_trading: bool,
     ) -> Board {
         Board {
             step: 0,
-            // forager_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
-            agent_histories: HashMap::new(),
+            agent_histories: BTreeMap::new(),
             resource_locations: BTreeMap::new(),
             rng: StdRng::seed_from_u64(seed),
             model,
             loaded_map: false,
+            has_trading,
+            traded: HashMap::new(),
+            current_traders: Vec::new(),
         }
     }
     pub fn new_with_seed_resources(
@@ -172,52 +176,37 @@ impl Board {
         seed: u64,
         map_locations: &str,
         model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
+        has_trading: bool,
     ) -> Board {
         let path =
             std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join(map_locations);
         let resource_locations = read_resource_locations(&std::fs::read_to_string(path).unwrap());
+
         Board {
             step: 0,
             agent_grid: DenseGrid2D::new(dim.0.into(), dim.0.into()),
             resource_grid: DenseGrid2D::new(dim.0.into(), dim.1.into()),
             dim,
             num_agents,
-            agent_histories: HashMap::new(),
+            agent_histories: BTreeMap::new(),
             resource_locations,
             rng: StdRng::seed_from_u64(seed),
             loaded_map: true,
             model,
+            has_trading,
+            traded: HashMap::new(),
+            current_traders: Vec::new(),
         }
     }
-    // pub fn construct(
-    //     agent_grid: DenseGrid2D<Trader>,
-    //     resource_grid: DenseGrid2D<Patch>,
-    //     num_agents: u8,
-    //     dim: (u16, u16),
-    // ) -> Board {
-    //     Board {
-    //         step: 0,
-    //         agent_grid,
-    //         resource_grid,
-    //         dim,
-    //         num_agents,
-    //         agent_histories: HashMap::new(),
-    //         resource_locations: BTreeMap::new(),
-    //         rng: StdRng::from_entropy(),
-    //     }
-    // }
-}
 
-impl State for Board {
-    fn init(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
-        self.step = 0;
+    /// Randomly inits agents.
+    fn generate_agents_random(&mut self, schedule: &mut Schedule) {
         for n in 0..self.num_agents {
             let x: u16 = self.rng.gen_range(1..self.dim.0);
             let y: u16 = self.rng.gen_range(1..self.dim.1);
 
             let id: u32 = n.into();
 
-            // let agent = Forager::new(
             let agent = Trader::new(Forager::new(
                 id,
                 Int2D {
@@ -233,24 +222,18 @@ impl State for Board {
 
             // Put the agent in your state
             schedule.schedule_repeating(Box::new(agent), 0., 0);
+
+            // Set agent location
+            self.agent_grid
+                .set_object_location(agent, &agent.forager.pos)
         }
+    }
 
-        let resource_lookup = if !self.loaded_map {
-            // Init empty resource locations
-            for resource in Resource::iter() {
-                self.resource_locations.insert(resource, Vec::new());
-            }
-            None
-        } else {
-            let mut resource_lookup: HashMap<Int2D, Resource> = HashMap::new();
-            self.resource_locations.iter().for_each(|(&res, v)| {
-                for loc in v.iter() {
-                    resource_lookup.insert(*loc, res);
-                }
-            });
-            Some(resource_lookup)
-        };
-
+    /// Randomly sets resource locations from config.
+    fn set_resources_random(&mut self) {
+        Resource::iter().for_each(|resource| {
+            self.resource_locations.insert(resource, Vec::new());
+        });
         let mut id = 0;
         for i in 0..self.dim.0 {
             for j in 0..self.dim.1 {
@@ -258,164 +241,100 @@ impl State for Board {
                     x: i.into(),
                     y: j.into(),
                 };
-                let item = if let Some(resource_lookup) = resource_lookup.as_ref() {
-                    if let Some(resource) = resource_lookup.get(&pos) {
-                        EnvItem::Resource(*resource)
-                    } else if self.rng.gen::<f32>() < core_config().world.LAND_PROP {
-                        EnvItem::Land
-                    } else {
-                        EnvItem::Bush
-                    }
-                } else {
-                    self.rng.gen()
-                };
-
+                let item = self.rng.gen();
                 let patch = Patch::new(id, item);
                 self.resource_grid.set_object_location(patch, &pos);
-                if !self.loaded_map {
-                    if let EnvItem::Resource(resource) = patch.env_item {
-                        let v = self
-                            .resource_locations
-                            .get_mut(&resource)
-                            .expect("HashMap initialised for all resource types");
-                        v.push(pos.to_owned());
-                    }
+                if let EnvItem::Resource(resource) = patch.env_item {
+                    self.resource_locations
+                        .get_mut(&resource)
+                        .expect("HashMap initialised for all resource types")
+                        .push(pos.to_owned());
                 }
                 id += 1;
             }
         }
     }
 
-    fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {
-        if self.step > 0 {
-            use super::routing::get_traders;
-            // get snapshot of agents inventories
-            let traders_pre = get_traders(self);
-            let inventories_pre: Vec<(i32, i32)> = traders_pre
-                .iter()
-                .map(|trader| {
-                    (
-                        trader.forager().count(&Resource::Food),
-                        trader.forager().count(&Resource::Water),
-                    )
-                })
-                .collect();
-
-            // randomly generate an agent trade resolution sequence
-            let mut ids: Vec<u32> = (0..self.num_agents.into()).collect();
-            ids.shuffle(&mut self.rng);
-
-            // loop through agents resolving trades
-            for id in ids {
-                let cur = get_agent_by_id(self, &id);
-
-                // Execute trade if available.
-                if !cur.offer().is_trivial() {
-                    // Get traders as mutable...(hack):
-                    // TODO: only insider trading horizon.
-                    cfg_if! {
-                        if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
-                            let offer = cur.offer();
-                            for trader in get_traders(self) {
-                                // only use the id's to keep track of which traders have been
-                                // considered rather than using reference to traders that
-                                // might change within the loop
-                                let trader_id = trader.id();
-                                if trader_id != cur.id() {
-                                    let trader = get_agent_by_id(self, &trader_id);
-                                    if trader.offer().matched(&offer) {
-                                        if step_distance(&cur.forager.pos, &trader.forager.pos)
-                                            < core_config().trade.MAX_TRADE_DISTANCE {
-                                            let settled_trader = settle_trade_on_counterparty(trader, &offer);
-                                            self.agent_grid.set_object_location(
-                                                settled_trader,
-                                                &Int2D {
-                                                    x: settled_trader.forager.pos.x,
-                                                    y: settled_trader.forager.pos.y,
-                                                },
-                                            );
-                                            self.agent_grid.update();
-
-                                            println!("INVERTING OFFER!");
-                                            let settled_cur = settle_trade_on_counterparty(cur, &offer.invert());
-                                            self.agent_grid.set_object_location(
-                                                settled_cur,
-                                                &Int2D {
-                                                    x: settled_cur.forager.pos.x,
-                                                    y: settled_cur.forager.pos.y,
-                                                },
-                                            );
-                                            self.agent_grid.update();
-                                        }
-                                    }
-                                }
-                            }
-
-                            // self.agent_grid.apply_to_all_values(|_, trader| {
-                            //     if trader.offer().matched(&offer) {
-                            //         if step_distance(&cur.forager.pos, &trader.forager.pos)
-                            //             < core_config().trade.MAX_TRADE_DISTANCE {
-                            //             // TODO: consider picking one trader at random instead
-                            //             // of *this* trader. (No real advantage though.)
-                            //             let settled_trader = settle_trade_on_counterparty(self.agent_grid.get(trader).unwrap(), &offer);
-                            //             // self.agent_grid.set_object_location(
-                            //             //     settled_trader,
-                            //             //     &Int2D {
-                            //             //         x: settled_trader.forager.pos.x,
-                            //             //         y: settled_trader.forager.pos.y,
-                            //             //     },
-                            //             // );
-                            //             println!("INVERTING OFFER!");
-                            //             let settled_cur = settle_trade_on_counterparty(cur, &offer.invert());
-                            //             self.agent_grid.set_object_location(
-                            //                 settled_cur,
-                            //                 &Int2D {
-                            //                     x: settled_cur.forager.pos.x,
-                            //                     y: settled_cur.forager.pos.y,
-                            //                 },
-                            //             );
-                            //             return Some(settled_trader)
-                            //         }
-                            //     }
-                            //     Some(self.agent_grid.get(trader).unwrap())
-                            // }, GridOption::READWRITE);
-
-                        } else {
-                            for ref_cell in state.agent_grid.locs.iter_mut() {
-                                for x in ref_cell.borrow_mut().iter_mut() {
-                                    for trader in x.iter_mut() {
-                                        if trader.offer().matched(&cur.offer()) {
-                                            // TODO: consider picking one trader at random instead
-                                            // of *this* trader. (No real advantage though.)
-                                            cur.settle_trade(trader);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+    /// Sets resource locations based on loaded map.
+    fn set_resources_from_map(&mut self) {
+        let mut resource_lookup: HashMap<Int2D, Resource> = HashMap::new();
+        self.resource_locations.iter().for_each(|(&res, v)| {
+            for loc in v.iter() {
+                resource_lookup.insert(*loc, res);
             }
+        });
+        let mut id = 0;
+        for i in 0..self.dim.0 {
+            for j in 0..self.dim.1 {
+                let pos = Int2D {
+                    x: i.into(),
+                    y: j.into(),
+                };
 
-            // re-read from agent grid and compare inventories to pre-trade snapshot
-            // get snapshot of agents inventories post trading
-            let traders_post = get_traders(self);
-            let inventories_post: Vec<(i32, i32)> = traders_post
-                .iter()
-                .map(|trader| {
-                    (
-                        trader.forager().count(&Resource::Food),
-                        trader.forager().count(&Resource::Water),
-                    )
-                })
-                .collect();
-            // println!("pre: {:?}", inventories_pre);
-            // println!("post: {:?}", inventories_post);
+                let item = if let Some(resource) = resource_lookup.get(&pos) {
+                    EnvItem::Resource(*resource)
+                } else if self.rng.gen::<f32>() < core_config().world.LAND_PROP {
+                    EnvItem::Land
+                } else {
+                    EnvItem::Bush
+                };
+
+                let patch = Patch::new(id, item);
+                self.resource_grid.set_object_location(patch, &pos);
+                id += 1;
+            }
         }
     }
+    fn init_resources(&mut self) {
+        if self.loaded_map {
+            self.set_resources_from_map();
+        } else {
+            self.set_resources_random();
+        }
+        // Call lazy_update on the resource grid
+        self.resource_grid.lazy_update();
+    }
+}
 
-    fn after_step(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
-        self.step += 1
+impl State for Board {
+    fn init(&mut self, schedule: &mut Schedule) {
+        // Init step
+        self.step = 0;
+        // Generate agents
+        self.generate_agents_random(schedule);
+        // Generate, set and lazy update resource grid
+        self.init_resources();
+    }
+
+    fn before_step(&mut self, _: &mut krabmaga::engine::schedule::Schedule) {
+        // Get current agents in random order from grid to avoid repeat lookups
+        self.current_traders = self.get_agents();
+        self.current_traders.shuffle(&mut self.rng);
+    }
+
+    fn after_step(&mut self, _schedule: &mut krabmaga::engine::schedule::Schedule) {
+        // TODO: add random ordering using board.rng to events in scheduler so that agents are picked
+        // in a different random order each time during step.
+
+        // Updates as state
+        let step: i32 = i32::try_from(self.step).unwrap();
+
+        // Update board model
+        let board = self.as_any_mut().downcast_mut::<Board>().unwrap();
+        board.model.step(step, &board.agent_histories);
+
+        // TODO: add better dashboard statistics for agents/optimization
+        // Simple report of mean reward over last 100
+        let traj = &board.agent_histories.get(&0).unwrap().trajectory;
+        let recent_len = 100;
+        let recent_traj = &traj[(traj.len().max(recent_len) - recent_len)..traj.len()];
+        if core_config().simulation.VERBOSITY > 0 {
+            println!(
+                "Mean reward (over last 100 steps) for agent 0: {} at step: {step}",
+                recent_traj.iter().map(|sar| sar.reward.val).sum::<i32>()
+                    / i32::try_from(recent_traj.len()).unwrap()
+            );
+        }
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -435,9 +354,12 @@ impl State for Board {
     }
 
     fn update(&mut self, step: u64) {
-        // lazy_update stops the field being searchable!
-        self.resource_grid.update();
+        // The agent_grid updated at end of timestep so set_object_location() is switched to "read" from "write"
         self.agent_grid.lazy_update();
+        // Clear traded lookup and current traders
+        self.traded.clear();
+        self.current_traders.clear();
+        self.step = step;
     }
 
     fn reset(&mut self) {
@@ -447,15 +369,79 @@ impl State for Board {
     }
 }
 
-pub fn get_agent_by_id(board: &mut Board, id: &u32) -> Trader {
-    board
-        .agent_grid
-        .get(&Trader::dummy(*id))
-        .expect("get agent by id")
+// Additional API for accessing board.
+cfg_if! {
+    if #[cfg(any(feature = "parallel", feature = "visualization", feature = "visualization_wasm"))]{
+        impl AgentAPI<Trader> for Board {
+            fn get_agent_by_id(&self, id: &u32) -> Trader {
+                self.agent_grid
+                    .get(&Trader::dummy(*id))
+                    .expect("get agent by id")
+            }
+            fn get_agents(&self) -> Vec<Trader> {
+                self.agent_grid.obj2loc.keys().iter().map(|&k|k.to_owned()).collect()
+            }
+        }
+    } else {
+        impl AgentAPI<Trader> for Board {
+            fn get_agent_by_id(&self, id: &u32) -> Trader {
+                let loc = &self.agent_grid.get_location(&Trader::dummy(*id)).unwrap();
+                let traders: Vec<Trader> = self.agent_grid.get_objects(loc).unwrap();
+                *traders.into_iter().filter(|trader| trader.id() == *id).collect_vec().first().unwrap()
+            }
+            fn get_agents(&self) -> Vec<Trader> {
+                let mut traders: Vec<Trader> = Vec::new();
+                for i in  0..self.dim.0 {
+                    for j in 0..self.dim.1 {
+                        // Gets objects from "read" state (start of time step)
+                        if let Some(mut traders_at_loc) = self.agent_grid.get_objects(&Int2D {x: i.into(), y: j.into() }) {
+                                traders.append(&mut traders_at_loc);
+                            }
+                        }
+                    }
+
+                traders
+            }
+        }
+    }
 }
+
 #[cfg(test)]
 mod tests {
+    use krabmaga::engine::schedule::Schedule;
+
+    use crate::model::{init, inventory::Inventory};
+
     use super::*;
+
+    trait TestInit {
+        fn init_with_test_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule);
+    }
+
+    impl TestInit for Board {
+        fn init_with_test_agents(&mut self, schedule: &mut krabmaga::engine::schedule::Schedule) {
+            self.step = 0;
+            let agent1 = Trader::new(Forager::new(0, Int2D { x: 2, y: 2 }, 0, 100));
+            let agent2 = Trader::new(Forager::new(1, Int2D { x: 2, y: 1 }, 100, 0));
+            let agent3 = Trader::new(Forager::new(2, Int2D { x: 4, y: 5 }, 0, 0));
+            self.agent_grid
+                .set_object_location(agent1, &agent1.forager.pos);
+            self.agent_grid
+                .set_object_location(agent2, &agent2.forager.pos);
+            self.agent_grid
+                .set_object_location(agent3, &agent3.forager.pos);
+            self.agent_histories.insert(0, History::new());
+            self.agent_histories.insert(1, History::new());
+            self.agent_histories.insert(2, History::new());
+            schedule.schedule_repeating(Box::new(agent1), 0., 0);
+            schedule.schedule_repeating(Box::new(agent2), 0., 0);
+            schedule.schedule_repeating(Box::new(agent3), 0., 0);
+
+            // Generate and set resources
+            self.init_resources();
+        }
+    }
+
     const TEST_LOCATIONS: &str = r#"{
         "Food": [
           {"x": 19,"y": 19},
@@ -480,5 +466,88 @@ mod tests {
             "{}",
             serde_json::to_string(&example_board((42, 42))).unwrap()
         );
+    }
+
+    #[test]
+    fn test_scheduler_event_ordering() {
+        // Add test to confirm/randomize order of events in PriorityQueue
+        todo!()
+    }
+
+    /// Get inventories of agents on a board.
+    fn get_inventories(board: &Board) -> HashMap<u32, (i32, i32)> {
+        board
+            .get_agents()
+            .iter()
+            .fold(HashMap::new(), |mut acc, trader| {
+                acc.insert(
+                    trader.id(),
+                    (
+                        trader.forager().count(&Resource::Food),
+                        trader.forager().count(&Resource::Water),
+                    ),
+                );
+                acc
+            })
+    }
+    /// Get string representation of traders on a board.
+    fn get_traders_display(board: &Board) -> HashMap<u32, String> {
+        board
+            .get_agents()
+            .iter()
+            .fold(HashMap::new(), |mut acc, trader| {
+                acc.insert(trader.id(), format!("{}", trader));
+                acc
+            })
+    }
+
+    #[test]
+    fn test_board_update() {
+        init();
+        // Set-up small board with three agents and no resources within trading radius that will make inverse offers
+        let seed = core_config().world.RANDOM_SEED;
+        let num_agents = core_config().world.N_AGENTS;
+        let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+        let has_trading = core_config().world.HAS_TRADING;
+        let model = SARSAModel::new(
+            (0..num_agents).map(|n| n.into()).collect(),
+            AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
+            InvLevel::iter().collect::<Vec<InvLevel>>(),
+            Action::iter().collect::<Vec<Action>>(),
+            false,
+        );
+
+        let mut board = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
+            Board::new_with_seed_resources(dim, num_agents, seed, file_name, model, has_trading)
+        } else {
+            Board::new_with_seed(dim, num_agents, seed, model, has_trading)
+        };
+
+        // Use scheduler and run directly once
+        let mut schedule: Schedule = Schedule::new();
+        board.init_with_test_agents(&mut schedule);
+
+        // Get traders and check resource levels are as expected
+        let traders0 = get_traders_display(&board);
+        let inv0 = get_inventories(&board);
+        println!("t=0 (before update): {:?}", traders0);
+        // No traders present before any scheduler step
+        assert!(inv0.is_empty());
+        // First step
+        schedule.step(&mut board);
+        let traders1 = get_traders_display(&board);
+        let inv1 = get_inventories(&board);
+        println!("t=1 (before update): {:?}", traders1);
+        assert_eq!(*inv1.get(&0).unwrap(), (-5, 95));
+        assert_eq!(*inv1.get(&1).unwrap(), (95, -5));
+        assert_eq!(*inv1.get(&2).unwrap(), (-5, -5));
+        // Second step
+        schedule.step(&mut board);
+        let traders2 = get_traders_display(&board);
+        let inv2 = get_inventories(&board);
+        println!("t=2 (before update): {:?}", traders2);
+        assert_eq!(*inv2.get(&0).unwrap(), (-9, 89));
+        assert_eq!(*inv2.get(&1).unwrap(), (89, -9));
+        assert_eq!(*inv2.get(&2).unwrap(), (-10, -10));
     }
 }

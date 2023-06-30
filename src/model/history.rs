@@ -1,11 +1,10 @@
-use std::marker::PhantomData;
-
 use super::{
     action::Action,
     agent_state::{AgentState, AgentStateItems, DiscrRep, InvLevel},
     reward::Reward,
 };
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct History<T, S, L, A>

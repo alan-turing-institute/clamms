@@ -1,25 +1,35 @@
-use krabmaga::cfg_if::cfg_if;
+use super::agent_api::AgentAPI;
+use super::routing::step_distance;
 use krabmaga::engine::{agent::Agent, location::Int2D};
+use rand::seq::SliceRandom;
+use std::fmt::Display;
 use std::hash::{Hash, Hasher};
-use strum_macros::Display;
 // use std::error::Error;
 use super::{
-    action::Action,
-    agent_state::AgentState,
     environment::Resource,
     forager::Forager,
     inventory::Inventory,
-    policy::Policy,
-    routing::{get_resource_locations, get_trader_locations, get_traders, Position, Router},
+    routing::{Position, Router},
 };
 use crate::{config::core_config, model::board::Board};
-use krabmaga::utils;
-
-use crate::engine::fields::grid_option::GridOption;
 
 #[derive(Clone, Copy)]
 pub struct Trader {
     pub forager: Forager,
+}
+
+impl Display for Trader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ID: {}; Loc: ({}, {}); Food: {} Water: {}",
+            self.id(),
+            self.forager.pos.x,
+            self.forager.pos.y,
+            self.forager.count(&Resource::Food),
+            self.forager.count(&Resource::Water)
+        )
+    }
 }
 
 impl Trader {
@@ -119,8 +129,8 @@ pub trait Trade {
         offered_lot_size: u32,
         other_lot_size: u32,
     ) -> bool;
-    /// Settles a trade on *both* this trader *and* the counterparty.
-    fn settle_trade(&mut self, counterparty: &mut Trader);
+    /// Applies their offer during trading.
+    fn apply_offer(&mut self);
 }
 
 impl Trade for Trader {
@@ -180,65 +190,66 @@ impl Trade for Trader {
             > demanded_count + ((demanded_lots + 1) * (demanded_lot_size as i32))
     }
 
-    fn settle_trade(&mut self, counterparty: &mut Trader) {
-        // Settle according to the offer of *this* trader (not the counterparty's offer).
+    fn apply_offer(&mut self) {
         let offer = self.offer();
-        if !offer.matched(&counterparty.offer()) {
-            panic!("Trade can't be settled!");
-        }
-
-        // Settle food inventory for both agents.
+        // Settle food inventory.
         self.acquire(&Resource::Food, offer.food_delta());
-        counterparty.acquire(&Resource::Food, -1 * offer.food_delta());
-
-        // Settle water inventory for both agents.
+        // Settle water inventory.
         self.acquire(&Resource::Water, offer.water_delta());
-        counterparty.acquire(&Resource::Water, -1 * offer.water_delta());
-
-        println!(
-            "***** TRADE SETTLED FOR {:?} BETWEEN TRADER {} and TRADER {} *****",
-            offer,
-            self.id(),
-            counterparty.id()
-        )
     }
-}
-
-pub fn settle_trade_on_counterparty(mut counterparty: Trader, offer: &Offer) -> Trader {
-    if !offer.matched(&counterparty.offer()) {
-        panic!("Trade can't be settled!");
-    }
-    // if !offer.matched(&counterparty.offer()) {
-    //     // Do nothing.
-    //     return counterparty
-    // }
-
-    println!(
-        "***** TRADE SETTLED FOR {:?} WITH TRADER {} *****",
-        offer,
-        counterparty.id()
-    );
-    println!(
-        "Prior inventory: Food: {}, Water: {}",
-        counterparty.forager.count(&Resource::Food),
-        counterparty.forager.count(&Resource::Water)
-    );
-    // Settle inventories.
-    counterparty.acquire(&Resource::Food, -1 * offer.food_delta());
-    counterparty.acquire(&Resource::Water, -1 * offer.water_delta());
-    println!(
-        "Final inventory: Food: {}, Water: {}",
-        counterparty.forager.count(&Resource::Food),
-        counterparty.forager.count(&Resource::Water)
-    );
-
-    counterparty
 }
 
 impl Agent for Trader {
     fn step(&mut self, state: &mut dyn krabmaga::engine::state::State) {
-        // all trades were facilitated in `before_step` function on the `board`
-        // next the agents choose an action given the agent_state post trading
+        let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
+        // Borrow traders snapshot captured at start of current board step in before_step
+        let traders = &board.current_traders;
+        if (board.step > 0) & board.has_trading {
+            // Execute trade if available.
+            if !self.offer().is_trivial() {
+                if !board.traded.contains_key(&self.id()) {
+                    let offer = self.offer();
+                    for counterparty in traders {
+                        let counterparty_id = counterparty.id();
+                        // If already traded, continue
+                        if board.traded.contains_key(&counterparty_id) {
+                            continue;
+                        }
+                        // If not self AND offer is matched AND agents are close enough, perform trade
+                        if counterparty_id != self.id()
+                            && counterparty.offer().matched(&offer)
+                            && (step_distance(&self.forager.pos, &counterparty.forager.pos)
+                                < core_config().trade.MAX_TRADE_DISTANCE)
+                        {
+                            // Print trade when vverbose
+                            if core_config().simulation.VERBOSITY > 1 {
+                                println!("Trade between: {} and {}", self, counterparty);
+                            }
+                            // Add trade to lookup of which agents have traded
+                            board.traded.insert(self.id(), Some(counterparty_id));
+                            board.traded.insert(counterparty.id(), Some(self.id()));
+
+                            // Apply offer to inventory, counterparty will do corresponding call
+                            // during their update
+                            self.apply_offer();
+
+                            // Break - trade has occurred with only single trade currently implemented
+                            break;
+                        }
+                    }
+                    // If no trade possible and not traded, set to None
+                    board.traded.entry(self.id()).or_insert(None);
+                } else if let Some(&Some(_)) = board.traded.get(&self.id()) {
+                    // Apply offer previously initiated by a counterparty during their agent step
+                    self.apply_offer();
+                }
+            } else {
+                // Offer trivial, set to None
+                board.traded.insert(self.id(), None);
+            }
+        }
+
+        // Trade has occurred before agent choosee next action
         self.forager.step(state)
     }
 }
@@ -281,7 +292,7 @@ impl Inventory for Trader {
         self.forager.count(resource)
     }
 
-    fn acquire(&mut self, resource: &Resource, quantity: i32) -> () {
+    fn acquire(&mut self, resource: &Resource, quantity: i32) {
         self.forager.acquire(resource, quantity)
     }
 }
