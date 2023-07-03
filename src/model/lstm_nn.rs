@@ -1,12 +1,12 @@
-use tch::{nn, Device, Tensor, Kind};
-use tch::nn::{OptimizerConfig, Module, RNN};
+use tch::nn::{Module, OptimizerConfig, RNN};
+use tch::{nn, Device, Kind, Tensor};
 
 // Output sizes
-const POLICY_OUT: i64 = 3; // Policy head - to food, to water, stationary
+const POLICY_OUT: i64 = 4; // Policy head - to food, to water, stationary
 const REWARD_OUT: i64 = 1; // Single value reward
 
 // Input size - (food, water) ([n, 2]) + last action ([n, 3])
-const INPUT_SIZE: i64 = 5;
+const INPUT_SIZE: i64 = 6;
 
 // LSTM size
 const LSTM_SIZE: i64 = 128;
@@ -15,7 +15,6 @@ const LSTM_SIZE: i64 = 128;
 const LEARNING_RATE: f64 = 0.01;
 
 pub fn forward_pass(x1: Tensor, x2: Tensor, y: Tensor) -> (Tensor, Tensor) {
-
     // x1 = [food, water]
     // x2 = One-hot encoded action e.g. [0, 1, 0]
 
@@ -28,7 +27,7 @@ pub fn forward_pass(x1: Tensor, x2: Tensor, y: Tensor) -> (Tensor, Tensor) {
     // Device is going to be either CPU or GPU
     let vs = nn::VarStore::new(device);
 
-    // Concat inputs 
+    // Concat inputs
     // Eventually visual info can be concatenated here as well
     // Not sure this is the best way to do it
     let x = Tensor::concatenate(&[x1, x2], 2);
@@ -55,26 +54,27 @@ pub fn forward_pass(x1: Tensor, x2: Tensor, y: Tensor) -> (Tensor, Tensor) {
     // Forward pass
     let (lstm_out, _) = lstm.seq(&x.to_device(device));
     //println!("LSTM pass done");
-    let l1 = basic_linear.forward(&lstm_out).relu(); 
+    let l1 = basic_linear.forward(&lstm_out).relu();
     let l2 = basic_linear.forward(&lstm_out).relu();
     let policy_out = linear_policy.forward(&l1).softmax(-1, Kind::Float);
     let reward_out = linear_reward.forward(&l2);
 
-    return(policy_out, reward_out)  
+    return (policy_out, reward_out);
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::model::{utils::encode_batch, 
-        action::{Action, encode_vec_of_actions}, 
-        agent_state::{AgentState, encode_vec_of_states}, 
-        reward::Reward};
+    use crate::model::{
+        action::{encode_vec_of_actions, Action},
+        agent_state::{encode_vec_of_states, AgentState},
+        reward::Reward,
+        utils::encode_batch,
+    };
 
     use super::*;
 
     #[test]
     fn test_fp_output() {
-        
         // Create Action
         // Currently (1, 1, 3)
         let enc_action = encode_vec_of_actions(&[Action::ToFood]);
@@ -82,7 +82,11 @@ mod tests {
 
         // Create AgentState
         // Currently (1, 1, 2)
-        let v = vec![AgentState {food: 25, water: 7}];
+        let v = vec![AgentState {
+            food: 25,
+            water: 7,
+            ..Default::default()
+        }];
         let a = encode_vec_of_states(&v);
         let enc_agent_state = encode_batch(&[a]);
 
@@ -95,7 +99,5 @@ mod tests {
 
         println!("{}", policy);
         println!("{}", reward);
-
     }
-     
 }

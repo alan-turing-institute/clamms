@@ -1,9 +1,15 @@
-use std::collections::BTreeMap;
-
-use krabmaga::{engine::location::Int2D, hashbrown::HashSet, *};
-use model::environment::Resource;
+use krabmaga::*;
 mod config;
 mod model;
+use crate::config::core_config;
+use crate::model::{
+    action::Action,
+    agent_state::{AgentStateItems, InvLevel},
+    board::Board,
+    tabular_rl::SARSAModel,
+};
+use krabmaga::engine::{schedule::Schedule, state::State};
+use strum::IntoEnumIterator;
 
 // Visualization specific imports
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
@@ -18,34 +24,35 @@ mod visualization;
 // Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
 fn main() {
-    use crate::{config::core_config, model::board::Board};
-    use krabmaga::{
-        engine::{location::Int2D, schedule::Schedule, state::State},
-        hashbrown::HashSet,
-    };
-
     let seed = core_config().world.RANDOM_SEED;
-    let step = 10;
+    let n_steps = core_config().world.N_STEPS;
     let num_agents = core_config().world.N_AGENTS;
-    let dim: (u16, u16) = (10, 10);
+    let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+    let has_trading = core_config().world.HAS_TRADING;
+    let multi_policy = core_config().rl.MULTI_POLICY;
 
-    // let mut board = Board::new_with_seed(dim, num_agents, seed);
+    let model = SARSAModel::new(
+        (0..num_agents).map(|n| n.into()).collect(),
+        AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
+        InvLevel::iter().collect::<Vec<InvLevel>>(),
+        Action::iter().collect::<Vec<Action>>(),
+        multi_policy,
+    );
+
+    // let mut board = Board::new_with_seed(dim, num_agents, seed, model);
     let mut board = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
-        Board::new_with_seed_resources(dim, num_agents, seed, &file_name)
+        Board::new_with_seed_resources(dim, num_agents, seed, file_name, model, has_trading)
     } else {
-        Board::new_with_seed(dim, num_agents, seed)
+        Board::new_with_seed(dim, num_agents, seed, model, has_trading)
     };
-    // Use simulate
-    // simulate!(state, step, 10, false);
 
     // Use scheduler and run directly once
     let mut schedule: Schedule = Schedule::new();
-    let state = board.as_state_mut();
-    state.init(&mut schedule);
-    for i in 0..step {
-        println!("Step: {i}");
-        schedule.step(state);
+    board.init(&mut schedule);
+    for _ in 0..n_steps {
+        schedule.step(&mut board);
     }
+
     // Open output file and write history
     let mut f = File::create("output.json").unwrap();
     writeln!(
@@ -59,21 +66,31 @@ fn main() {
 // Main used when a visualization feature is applied.
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 fn main() {
-    use config::core_config;
-    use model::board::Board;
-
     let num_agents = core_config().world.N_AGENTS;
     let seed = core_config().world.RANDOM_SEED;
     let dim: (u16, u16) = (core_config().world.WIDTH, core_config().world.HEIGHT);
+    let has_trading = core_config().world.HAS_TRADING;
+    let multi_policy = core_config().rl.MULTI_POLICY;
+
+    let model = SARSAModel::new(
+        (0..num_agents).map(|n| n.into()).collect(),
+        AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
+        InvLevel::iter().collect::<Vec<InvLevel>>(),
+        Action::iter().collect::<Vec<Action>>(),
+        multi_policy,
+    );
+
     let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
-        Board::new_with_seed_resources(dim, num_agents, seed, &file_name)
+        Board::new_with_seed_resources(dim, num_agents, seed, file_name, model, has_trading)
     } else {
-        Board::new_with_seed(dim, num_agents, seed)
+        Board::new_with_seed(dim, num_agents, seed, model, has_trading)
     };
     Visualization::default()
         // .with_window_dimensions((dim.0+2).into(), (dim.1+2).into())
         .with_simulation_dimensions((dim.0 + 1).into(), (dim.1 + 1).into())
         .with_background_color(Color::GRAY)
-        .with_name("Template")
-        .start::<BoardVis, Board>(BoardVis, state);
+        .with_name("CLAMMs")
+        .setup::<BoardVis, Board>(BoardVis, state)
+        // .set_runner(runner)
+        .run();
 }

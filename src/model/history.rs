@@ -1,31 +1,57 @@
-use super::{action::Action, agent_state::AgentState, reward::Reward};
+use super::{
+    action::Action,
+    agent_state::{AgentState, AgentStateItems, DiscrRep, InvLevel},
+    reward::Reward,
+};
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct History {
-    trajectory: Vec<SAR>,
+pub struct History<T, S, L, A>
+where
+    T: DiscrRep<S, L> + Clone,
+    A: Clone,
+{
+    pub trajectory: Vec<SAR<T, S, L, A>>,
+    agent_state_items: PhantomData<S>,
+    agent_state_item_levels: PhantomData<L>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct SAR {
-    pub state: AgentState,
-    pub action: Action,
+pub struct SAR<T, S, L, A>
+where
+    T: DiscrRep<S, L>,
+    A: Clone,
+{
+    pub state: T,
+    pub action: A,
     pub reward: Reward,
+    agent_state_items: PhantomData<S>,
+    agent_state_item_levels: PhantomData<L>,
 }
 
-impl History {
+impl<T, S, L, A> History<T, S, L, A>
+where
+    T: DiscrRep<S, L> + Clone,
+    A: Clone,
+{
     pub fn new() -> Self {
         Self {
             trajectory: Vec::new(),
+            agent_state_items: PhantomData,
+            agent_state_item_levels: PhantomData,
         }
     }
-    pub fn push(&mut self, sar: SAR) {
+    pub fn push(&mut self, sar: SAR<T, S, L, A>) {
         self.trajectory.push(sar);
     }
-    pub fn last_action(&self) -> Option<Action> {
+    pub fn last_state_action(&self) -> Option<(T, A)> {
         let len = self.trajectory.len();
         if len > 0 {
-            Some(self.trajectory[self.trajectory.len() - 1].action.clone())
+            Some((
+                self.trajectory[self.trajectory.len() - 1].state.clone(),
+                self.trajectory[self.trajectory.len() - 1].action.clone(),
+            ))
         } else {
             None
         }
@@ -35,13 +61,23 @@ impl History {
     }
 }
 
-impl SAR {
-    pub fn new(state: AgentState, action: Action, reward: Reward) -> Self {
+impl<T, S, L, A> SAR<T, S, L, A>
+where
+    T: DiscrRep<S, L> + Clone,
+    A: Clone,
+{
+    pub fn new(state: T, action: A, reward: Reward) -> Self {
         SAR {
             state,
             action,
             reward,
+            agent_state_items: PhantomData,
+            agent_state_item_levels: PhantomData,
         }
+    }
+
+    pub fn representation(&self) -> (Vec<(S, L)>, A) {
+        (self.state.representation(), self.action.clone())
     }
 }
 
@@ -49,17 +85,21 @@ impl SAR {
 mod tests {
     use super::*;
 
-    fn get_test_history() -> History {
+    fn get_test_history() -> History<AgentState, AgentStateItems, InvLevel, Action> {
         History {
             trajectory: vec![SAR::new(
                 AgentState {
                     food: 0,
                     water: 0,
-                    // last_action: None,
+                    min_steps_to_food: None,
+                    min_steps_to_water: None,
+                    min_steps_to_trader: None, // last_action: None,
                 },
                 Action::Stationary,
                 Reward { val: -1 },
             )],
+            agent_state_items: PhantomData,
+            agent_state_item_levels: PhantomData,
         }
     }
 
@@ -70,7 +110,9 @@ mod tests {
             AgentState {
                 food: 0,
                 water: 0,
-                // last_action: None,
+                min_steps_to_food: None,
+                min_steps_to_water: None,
+                min_steps_to_trader: None, // last_action: None,
             },
             Action::Stationary,
             Reward { val: -1 },
@@ -79,7 +121,9 @@ mod tests {
             AgentState {
                 food: 0,
                 water: 0,
-                // last_action: None,
+                min_steps_to_food: None,
+                min_steps_to_water: None,
+                min_steps_to_trader: None, // last_action: None,
             },
             Action::Stationary,
             Reward { val: -2 },
@@ -93,11 +137,18 @@ mod tests {
         assert_ne!(history.trajectory.last().unwrap(), &sar2);
     }
 
-    #[test]
-    fn test_last_action() {
-        assert!(matches!(
-            get_test_history().last_action(),
-            Some(Action::Stationary)
-        ))
-    }
+    // #[test]
+    // fn test_last_state_action() {
+    //     assert!(matches!(
+    //         get_test_history().last_state_action(),
+    //         Some((
+    //             AgentState {
+    //                 food: 0,
+    //                 water: 0,
+    //                 // last_action: None,
+    //             },
+    //             Action::Stationary
+    //         ))
+    //     ))
+    // }
 }

@@ -19,7 +19,11 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 regex = "1.8.4"
 tch = "0.13.0"
+itertools = "0.10.5"
+tuple-conv = "1.0.1"
+
 
 [features]
+# default = ["visualization", "visualization_wasm"]
 visualization = ["krabmaga/visualization"]
 visualization_wasm = ["krabmaga/visualization_wasm"]

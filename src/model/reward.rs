@@ -23,7 +23,6 @@ impl Reward {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::model::utils::encode_batch;
@@ -34,10 +33,9 @@ mod tests {
     fn test_encode() {
         let r1 = Reward::new(12);
         let r2 = Reward::new(34);
-        
+
         let enc_reward = encode_batch(&[r1.encode(), r2.encode()]);
 
         assert_eq!(enc_reward.size(), vec![2, 1]);
     }
-     
 }
