@@ -60,6 +60,8 @@ pub fn action2rotation(action: Action) -> f32 {
         Action::Stationary => 0.0,
         Action::ToFood => 0.0,
         Action::ToWater => 0.0,
+        // TODO: All other actions
+        _ => 0.0,
     };
     degree2radians(degs)
 }
