@@ -118,6 +118,8 @@ pub struct RLConfig {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct TradeConfig {
     pub MAX_TRADE_DISTANCE: u32,
+    pub FOOD_MIN_INVENTORY_LEVEL: i32,
+    pub WATER_MIN_INVENTORY_LEVEL: i32,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
@@ -185,6 +187,8 @@ mod tests {
 
         [trade]
         MAX_TRADE_DISTANCE = 2
+        FOOD_MIN_INVENTORY_LEVEL = 0
+        WATER_MIN_INVENTORY_LEVEL = 0
 
         [rl]
         INIT_Q_VALUES = -10000.0
