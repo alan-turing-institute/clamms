@@ -73,6 +73,22 @@ impl From<ClammsInt2D> for Int2D {
         }
     }
 }
+
+impl From<Int2D> for ClammsInt2D {
+    fn from(value: Int2D) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+
+impl ClammsInt2D {
+    pub fn new(loc: (i32, i32)) -> Self {
+        Self { x: loc.0, y: loc.1 }
+    }
+}
+
 ///
 pub fn read_resource_locations(input: &str) -> BTreeMap<Resource, Vec<Int2D>> {
     serde_json::from_str::<BTreeMap<Resource, Vec<ClammsInt2D>>>(input)

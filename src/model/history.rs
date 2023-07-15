@@ -1,8 +1,11 @@
 use super::{
     action::Action,
     agent_state::{AgentState, AgentStateItems, DiscrRep, InvLevel},
+    board::ClammsInt2D,
     reward::Reward,
 };
+use itertools::izip;
+use krabmaga::engine::location::Int2D;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
@@ -11,8 +14,12 @@ pub struct History<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,
     A: Clone,
+    S: Clone,
+    L: Clone,
 {
     pub trajectory: Vec<SAR<T, S, L, A>>,
+    pub times: Vec<u64>,
+    pub positions: Vec<ClammsInt2D>,
     agent_state_items: PhantomData<S>,
     agent_state_item_levels: PhantomData<L>,
 }
@@ -22,11 +29,19 @@ pub struct SAR<T, S, L, A>
 where
     T: DiscrRep<S, L>,
     A: Clone,
+    S: Clone,
+    L: Clone,
 {
+    #[serde(rename(serialize = "S"))]
     pub state: T,
+    #[serde(rename(serialize = "A"))]
     pub action: A,
+    #[serde(rename(serialize = "R"))]
     pub reward: Reward,
+    // TODO: check why needed
+    #[serde(skip_serializing)]
     agent_state_items: PhantomData<S>,
+    #[serde(skip_serializing)]
     agent_state_item_levels: PhantomData<L>,
 }
 
@@ -34,16 +49,22 @@ impl<T, S, L, A> History<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,
     A: Clone,
+    S: Clone,
+    L: Clone,
 {
     pub fn new() -> Self {
         Self {
             trajectory: Vec::new(),
+            times: Vec::new(),
+            positions: Vec::new(),
             agent_state_items: PhantomData,
             agent_state_item_levels: PhantomData,
         }
     }
-    pub fn push(&mut self, sar: SAR<T, S, L, A>) {
+    pub fn push(&mut self, sar: SAR<T, S, L, A>, time: u64, pos: Int2D) {
         self.trajectory.push(sar);
+        self.times.push(time);
+        self.positions.push(pos.into());
     }
     pub fn last_state_action(&self) -> Option<(T, A)> {
         let len = self.trajectory.len();
@@ -59,12 +80,24 @@ where
     pub fn len(&self) -> usize {
         self.trajectory.len()
     }
+    pub fn to_skipped_history(&self, step_size: usize) -> Self {
+        izip!(&self.trajectory, &self.times, &self.positions)
+            .step_by(step_size)
+            .fold(History::new(), |mut acc, (state, time, pos)| {
+                acc.trajectory.push(state.clone());
+                acc.times.push(*time);
+                acc.positions.push(*pos);
+                acc
+            })
+    }
 }
 
 impl<T, S, L, A> SAR<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,
     A: Clone,
+    S: Clone,
+    L: Clone,
 {
     pub fn new(state: T, action: A, reward: Reward) -> Self {
         SAR {
@@ -98,6 +131,8 @@ mod tests {
                 Action::Stationary,
                 Reward { val: -1 },
             )],
+            positions: vec![ClammsInt2D::new((0, 0))],
+            times: vec![0],
             agent_state_items: PhantomData,
             agent_state_item_levels: PhantomData,
         }
@@ -128,7 +163,7 @@ mod tests {
             Action::Stationary,
             Reward { val: -2 },
         );
-        history.push(sar.clone());
+        history.push(sar.clone(), 1, Int2D { x: 1, y: 0 });
 
         assert_eq!(history.len(), 2);
         // Cannot use matches! on struct RHS?

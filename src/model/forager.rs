@@ -155,11 +155,15 @@ impl Agent for Forager {
             .agent_histories
             .get_mut(&self.id())
             .expect("HashMap initialised for all agents")
-            .push(SAR::new(
-                agent_state,
-                action,
-                Reward::from_inv_count_linear(self.food, self.water),
-            ));
+            .push(
+                SAR::new(
+                    agent_state,
+                    action,
+                    Reward::from_inv_count_linear(self.food, self.water),
+                ),
+                board.step,
+                self.pos,
+            );
 
         // if self.id == 0 {
         //     println!(
