@@ -1,7 +1,7 @@
 use super::agent_api::AgentAPI;
 use super::environment::Resource;
 use super::history::History;
-use super::trader::Trader;
+use super::trader::{Offer, Trader};
 use crate::config::core_config;
 
 use super::action::Action;
@@ -123,6 +123,17 @@ pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
     map
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct AgentOffer {
+    id: u32,
+    offer: Offer,
+}
+impl AgentOffer {
+    pub fn new(id: u32, offer: &Offer) -> Self {
+        Self { id, offer: *offer }
+    }
+}
+
 // TODO: add a fast lookup by location for resources
 pub struct Board {
     pub step: u64,
@@ -136,7 +147,7 @@ pub struct Board {
     pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     pub loaded_map: bool,
     pub has_trading: bool,
-    pub traded: HashMap<u32, Option<u32>>,
+    pub traded: HashMap<u32, Option<AgentOffer>>,
     pub current_traders: Vec<Trader>,
 }
 

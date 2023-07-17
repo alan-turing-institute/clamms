@@ -1,8 +1,9 @@
 use super::{
     action::Action,
     agent_state::{AgentState, AgentStateItems, DiscrRep, InvLevel},
-    board::ClammsInt2D,
+    board::{AgentOffer, ClammsInt2D},
     reward::Reward,
+    trader::Offer,
 };
 use itertools::izip;
 use krabmaga::engine::location::Int2D;
@@ -20,6 +21,7 @@ where
     pub trajectory: Vec<SAR<T, S, L, A>>,
     pub times: Vec<u64>,
     pub positions: Vec<ClammsInt2D>,
+    pub trades: Vec<Option<AgentOffer>>,
     agent_state_items: PhantomData<S>,
     agent_state_item_levels: PhantomData<L>,
 }
@@ -57,14 +59,16 @@ where
             trajectory: Vec::new(),
             times: Vec::new(),
             positions: Vec::new(),
+            trades: Vec::new(),
             agent_state_items: PhantomData,
             agent_state_item_levels: PhantomData,
         }
     }
-    pub fn push(&mut self, sar: SAR<T, S, L, A>, time: u64, pos: Int2D) {
+    pub fn push(&mut self, sar: SAR<T, S, L, A>, time: u64, pos: Int2D, trade: Option<AgentOffer>) {
         self.trajectory.push(sar);
         self.times.push(time);
         self.positions.push(pos.into());
+        self.trades.push(trade);
     }
     pub fn last_state_action(&self) -> Option<(T, A)> {
         let len = self.trajectory.len();
@@ -81,12 +85,13 @@ where
         self.trajectory.len()
     }
     pub fn to_skipped_history(&self, step_size: usize) -> Self {
-        izip!(&self.trajectory, &self.times, &self.positions)
+        izip!(&self.trajectory, &self.times, &self.positions, &self.trades)
             .step_by(step_size)
-            .fold(History::new(), |mut acc, (state, time, pos)| {
+            .fold(History::new(), |mut acc, (state, time, pos, trade)| {
                 acc.trajectory.push(state.clone());
                 acc.times.push(*time);
                 acc.positions.push(*pos);
+                acc.trades.push(*trade);
                 acc
             })
     }
@@ -133,6 +138,7 @@ mod tests {
             )],
             positions: vec![ClammsInt2D::new((0, 0))],
             times: vec![0],
+            trades: vec![None],
             agent_state_items: PhantomData,
             agent_state_item_levels: PhantomData,
         }
@@ -163,7 +169,7 @@ mod tests {
             Action::Stationary,
             Reward { val: -2 },
         );
-        history.push(sar.clone(), 1, Int2D { x: 1, y: 0 });
+        history.push(sar.clone(), 1, Int2D { x: 1, y: 0 }, None);
 
         assert_eq!(history.len(), 2);
         // Cannot use matches! on struct RHS?

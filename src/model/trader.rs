@@ -1,7 +1,9 @@
 use super::agent_api::AgentAPI;
+use super::board::AgentOffer;
 use super::routing::step_distance;
 use krabmaga::engine::{agent::Agent, location::Int2D};
 use rand::seq::SliceRandom;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 // use std::error::Error;
@@ -53,7 +55,7 @@ impl Trader {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct Offer(i32, i32);
 
 // #[derive(Error, Debug)]
@@ -228,8 +230,14 @@ impl Agent for Trader {
                                 println!("Trade between: {} and {}", self, counterparty);
                             }
                             // Add trade to lookup of which agents have traded
-                            board.traded.insert(self.id(), Some(counterparty_id));
-                            board.traded.insert(counterparty.id(), Some(self.id()));
+                            board.traded.insert(
+                                self.id(),
+                                Some(AgentOffer::new(counterparty.id(), &offer)),
+                            );
+                            board.traded.insert(
+                                counterparty.id(),
+                                Some(AgentOffer::new(self.id(), &offer.invert())),
+                            );
 
                             // Apply offer to inventory, counterparty will do corresponding call
                             // during their update

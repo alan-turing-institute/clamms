@@ -163,6 +163,7 @@ impl Agent for Forager {
                 ),
                 board.step,
                 self.pos,
+                *board.traded.get(&self.id()).unwrap_or(&None),
             );
 
         // if self.id == 0 {
