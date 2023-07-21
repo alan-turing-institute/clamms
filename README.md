@@ -42,3 +42,20 @@ Set some environment variables to point Rust towards libtorch:
 `export LD_LIBRARY_PATH=/home/azureuser/.local/lib/python3.10/site-packages/torch/lib:$LD_LIBRARY_PATH`
 
 These have been added to `/home/azureuser/.bashrc` on both Azure VMs.
+
+### Running on macOS
+Create a new virtual environment, install torch and add environment variables.
+For example with conda:
+```bash
+conda create --name tch-rs python=3.9 -y
+conda activate tch-rs
+pip install torch
+echo "export LIBTORCH=$(pip show torch | grep Location | cut -f 2 -d ' ')/torch" >> ~/.zshrc
+echo "export DYLD_LIBRARY_PATH=${LIBTORCH}/lib:$DYLD_LIBRARY_PATH" >> ~/.zshrc
+. ~/.zshrc
+conda activate tch-rs
+```
+If successful, the following test should run successfully:
+```bash
+cargo test --package clamms --bin clamms -- model::lstm_nn::tests::test_fp_output --exact --nocapture
+```
