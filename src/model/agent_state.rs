@@ -14,6 +14,7 @@ pub struct AgentState {
     pub min_steps_to_food: Option<u32>,
     pub min_steps_to_water: Option<u32>,
     pub min_steps_to_trader: Option<u32>,
+    // TODO: add currently posted offer?
 }
 
 #[derive(Debug, Clone, PartialEq, EnumIter, Hash, Eq, Serialize, Deserialize)]

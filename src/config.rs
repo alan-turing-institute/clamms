@@ -78,9 +78,6 @@ pub struct AgentConfig {
     pub WATER_CONSUME_RATE: u32,
     pub FOOD_MAX_INVENTORY: i32,
     pub WATER_MAX_INVENTORY: i32,
-    pub FOOD_LOT_SIZE: u32,
-    pub WATER_LOT_SIZE: u32,
-    pub MAX_TRADE_LOTS: u32,
     pub INVENTORY_LEVEL_CRITICAL_LOW: i32,
     pub INVENTORY_LEVEL_LOW_MEDIUM: i32,
     pub INVENTORY_LEVEL_MEDIUM_HIGH: i32,
@@ -120,6 +117,9 @@ pub struct RLConfig {
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct TradeConfig {
     pub MAX_TRADE_DISTANCE: u32,
+    pub LOW_LOT_SIZE: i32,
+    pub MEDIUM_LOT_SIZE: i32,
+    pub HIGH_LOT_SIZE: i32,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]

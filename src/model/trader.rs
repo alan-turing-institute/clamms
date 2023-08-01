@@ -1,7 +1,5 @@
-use super::agent_api::AgentAPI;
 use super::routing::step_distance;
 use krabmaga::engine::{agent::Agent, location::Int2D};
-use rand::seq::SliceRandom;
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 // use std::error::Error;
@@ -53,7 +51,7 @@ impl Trader {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Offer(i32, i32);
 
 // #[derive(Error, Debug)]
@@ -74,37 +72,16 @@ impl Offer {
         Offer(lots_food, lots_water)
     }
 
-    fn food_delta(&self) -> i32 {
+    pub fn food_delta(&self) -> i32 {
         self.0
     }
 
-    fn water_delta(&self) -> i32 {
+    pub fn water_delta(&self) -> i32 {
         self.1
-    }
-
-    /// Number of lots offered. Will always be non-positive.
-    fn offered_lots(&self) -> i32 {
-        std::cmp::min(self.0, self.1)
-    }
-
-    /// Number of lots demanded. Will always be non-negative
-    fn demanded_lots(&self) -> i32 {
-        std::cmp::max(self.0, self.1)
     }
 
     pub fn is_trivial(&self) -> bool {
         self.0 == 0 && self.1 == 0
-    }
-
-    /// Adjust this offer by one lot offered & demanded.
-    fn adjust_by_one(&mut self, food_is_offered: bool) {
-        if food_is_offered {
-            self.0 -= 1;
-            self.1 += 1;
-        } else {
-            self.0 += 1;
-            self.1 -= 1;
-        }
     }
 
     /// Determines whether this offer is matched by another offer.
@@ -120,74 +97,14 @@ impl Offer {
 pub trait Trade {
     /// Gets this trader's offer.
     fn offer(&self) -> Offer;
-    /// Decides whether this trader is prepared to raise the given current offer.
-    fn will_raise_offer(
-        &self,
-        current_offer: &Offer,
-        offered_count: i32,
-        other_count: i32,
-        offered_lot_size: u32,
-        other_lot_size: u32,
-    ) -> bool;
     /// Applies their offer during trading.
     fn apply_offer(&mut self);
 }
 
 impl Trade for Trader {
-    /// Makes an offer, given the agent's current inventory.
+    /// Makes an offer.
     fn offer(&self) -> Offer {
-        let mut current_offer = Offer::new(0, 0);
-
-        // Offer the resource with maximum supply and demand the one with minimum supply.
-        // Find the maximum trade of food such that the food inventory will
-        // be greater than the water inventory even after the trade.
-        let count_food = self.count(&Resource::Food);
-        let count_water = self.count(&Resource::Water);
-        while self.will_raise_offer(
-            &current_offer,
-            count_food,
-            count_water,
-            core_config().agent.FOOD_LOT_SIZE,
-            core_config().agent.WATER_LOT_SIZE,
-        ) {
-            current_offer.adjust_by_one(true);
-        }
-        if !current_offer.is_trivial() {
-            return current_offer;
-        }
-
-        while self.will_raise_offer(
-            &current_offer,
-            count_water,
-            count_food,
-            core_config().agent.WATER_LOT_SIZE,
-            core_config().agent.FOOD_LOT_SIZE,
-        ) {
-            current_offer.adjust_by_one(false);
-        }
-        current_offer
-    }
-
-    /// Predicate to decide whether a higher offer will be made.
-    fn will_raise_offer(
-        &self,
-        current_offer: &Offer,
-        offered_count: i32,
-        demanded_count: i32,
-        offered_lot_size: u32,
-        demanded_lot_size: u32,
-    ) -> bool {
-        let offered_lots = current_offer.offered_lots();
-        if offered_lots.abs() as u32 >= core_config().agent.MAX_TRADE_LOTS {
-            return false;
-        }
-        // Naively, the offer is max when the inventory of the offered resource would remain larger than that of
-        // the demanded resource even after the exchange of an additional lot (in each direction).
-        // In general, other resource characteristics (consumption rate, acquisition rate, etc.) should
-        // also be taken into account.
-        let demanded_lots = current_offer.demanded_lots();
-        offered_count + ((offered_lots - 1) * (offered_lot_size as i32))
-            > demanded_count + ((demanded_lots + 1) * (demanded_lot_size as i32))
+        self.forager().posted_offer()
     }
 
     fn apply_offer(&mut self) {
@@ -196,6 +113,8 @@ impl Trade for Trader {
         self.acquire(&Resource::Food, offer.food_delta());
         // Settle water inventory.
         self.acquire(&Resource::Water, offer.water_delta());
+        // Reset posted_offer to trivial (this trade is settled)
+        self.forager.posted_offer = Offer::new(0, 0);
     }
 }
 
@@ -231,6 +150,7 @@ impl Agent for Trader {
 
                             // Apply offer to inventory, counterparty will do corresponding call
                             // during their update
+                            // self.offer() is also set to trivial
                             self.apply_offer();
 
                             // Break - trade has occurred with only single trade currently implemented
