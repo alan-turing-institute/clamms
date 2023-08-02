@@ -1,5 +1,9 @@
+use super::agent_api::AgentAPI;
+use super::board::AgentOffer;
 use super::routing::step_distance;
 use krabmaga::engine::{agent::Agent, location::Int2D};
+use rand::seq::SliceRandom;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 // use std::error::Error;
@@ -51,7 +55,7 @@ impl Trader {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Deserialize)]
 pub struct Offer(i32, i32);
 
 // #[derive(Error, Debug)]
@@ -145,8 +149,14 @@ impl Agent for Trader {
                                 println!("Trade between: {} and {}", self, counterparty);
                             }
                             // Add trade to lookup of which agents have traded
-                            board.traded.insert(self.id(), Some(counterparty_id));
-                            board.traded.insert(counterparty.id(), Some(self.id()));
+                            board.traded.insert(
+                                self.id(),
+                                Some(AgentOffer::new(counterparty.id(), &offer)),
+                            );
+                            board.traded.insert(
+                                counterparty.id(),
+                                Some(AgentOffer::new(self.id(), &offer.invert())),
+                            );
 
                             // Apply offer to inventory, counterparty will do corresponding call
                             // during their update
@@ -236,6 +246,8 @@ impl Hash for Trader {
 
 #[cfg(test)]
 mod tests {
+    use crate::model::init;
+
     use super::*;
 
     #[test]
@@ -252,5 +264,40 @@ mod tests {
         assert!(!offer.matched(&Offer::new(3, -3)));
         assert!(!offer.matched(&Offer::new(2, -2)));
         assert!(!offer.matched(&Offer::new(2, -1)));
+    }
+
+    #[test]
+    fn test_trader_offer() {
+        // Test init has FOOD_LOT_SIZE and WATER_LOT_SIZE equal to 1 and MIN_INVENTORY_LEVEL = 0
+        init();
+        let pos = Int2D { x: 0, y: 0 };
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 8, 5)).offer(),
+            Offer::new(-1, 1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 7, 5)).offer(),
+            Offer::new(0, 0)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, -8, -5)).offer(),
+            Offer::new(0, 0)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 2, -1)).offer(),
+            Offer::new(-1, 1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 1, -2)).offer(),
+            Offer::new(-1, 1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, -2, 1)).offer(),
+            Offer::new(1, -1)
+        );
+        assert_eq!(
+            Trader::new(Forager::new(0, pos, 0, -1)).offer(),
+            Offer::new(0, 0)
+        );
     }
 }

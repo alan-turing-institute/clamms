@@ -187,6 +187,8 @@ mod tests {
 
         [trade]
         MAX_TRADE_DISTANCE = 2
+        FOOD_MIN_INVENTORY_LEVEL = 0
+        WATER_MIN_INVENTORY_LEVEL = 0
 
         [rl]
         INIT_Q_VALUES = -10000.0
