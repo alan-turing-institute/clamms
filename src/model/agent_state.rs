@@ -26,7 +26,7 @@ pub enum AgentStateItems {
     MinStepsToTrader,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AgentStateDiscrete {
     pub food: InvLevel,
     pub water: InvLevel,

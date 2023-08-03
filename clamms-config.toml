@@ -2,7 +2,7 @@
 VERBOSITY = 2
 
 [world]
-N_STEPS = 10000
+N_STEPS = 30000
 RANDOM_SEED = 0
 LAND_PROP = 0.7
 FOOD_ABUNDANCE = 0.1
@@ -49,5 +49,8 @@ SARSA_N = 60
 GAMMA = 0.99
 ALPHA = 0.01
 EPSILON = 0.05
-MULTI_POLICY = false
-# MULTI_POLICY = true
+# MULTI_POLICY = false
+MULTI_POLICY = true
+SAVE_MODEL = true
+LOAD_MODEL = true
+MODEL_CHECKPOINT_FILE = "multiP_1__agents_20__trading_1__totalItr_40000.json"

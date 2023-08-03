@@ -2,6 +2,7 @@ use super::{
     action::Action,
     agent_state::{AgentState, AgentStateItems, DiscrRep, InvLevel},
     board::{AgentOffer, ClammsInt2D},
+    q_table::QKey,
     reward::Reward,
     trader::Offer,
 };
@@ -114,8 +115,8 @@ where
         }
     }
 
-    pub fn representation(&self) -> (Vec<(S, L)>, A) {
-        (self.state.representation(), self.action.clone())
+    pub fn representation(&self) -> QKey<S, L, A> {
+        QKey(self.state.representation(), self.action.clone())
     }
 }
 

@@ -45,13 +45,24 @@ fn main() {
     let has_trading = core_config().world.HAS_TRADING;
     let multi_policy = core_config().rl.MULTI_POLICY;
 
-    let model = SARSAModel::new(
-        (0..num_agents).map(|n| n.into()).collect(),
-        AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
-        InvLevel::iter().collect::<Vec<InvLevel>>(),
-        Action::iter().collect::<Vec<Action>>(),
-        multi_policy,
-    );
+    let model;
+    if core_config().rl.LOAD_MODEL {
+        model = SARSAModel::load(
+            core_config()
+                .rl
+                .MODEL_CHECKPOINT_FILE
+                .as_ref()
+                .expect("path to model checkpoint file needed to load model"),
+        );
+    } else {
+        model = SARSAModel::new(
+            (0..num_agents).map(|n| n.into()).collect(),
+            AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
+            InvLevel::iter().collect::<Vec<InvLevel>>(),
+            Action::iter().collect::<Vec<Action>>(),
+            multi_policy,
+        );
+    }
 
     // let mut board = Board::new_with_seed(dim, num_agents, seed, model);
     let mut board = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
@@ -76,6 +87,11 @@ fn main() {
         serde_json::to_string(&convert_history(&board.agent_histories, step_size)).unwrap()
     )
     .unwrap();
+
+    // Save model to file
+    if core_config().rl.SAVE_MODEL {
+        board.model.save()
+    }
 }
 
 // Main used when a visualization feature is applied.
@@ -87,13 +103,24 @@ fn main() {
     let has_trading = core_config().world.HAS_TRADING;
     let multi_policy = core_config().rl.MULTI_POLICY;
 
-    let model = SARSAModel::new(
-        (0..num_agents).map(|n| n.into()).collect(),
-        AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
-        InvLevel::iter().collect::<Vec<InvLevel>>(),
-        Action::iter().collect::<Vec<Action>>(),
-        multi_policy,
-    );
+    let model;
+    if core_config().rl.LOAD_MODEL {
+        model = SARSAModel::load(
+            core_config()
+                .rl
+                .MODEL_CHECKPOINT_FILE
+                .as_ref()
+                .expect("path to model checkpoint file needed to load model"),
+        );
+    } else {
+        model = SARSAModel::new(
+            (0..num_agents).map(|n| n.into()).collect(),
+            AgentStateItems::iter().collect::<Vec<AgentStateItems>>(),
+            InvLevel::iter().collect::<Vec<InvLevel>>(),
+            Action::iter().collect::<Vec<Action>>(),
+            multi_policy,
+        );
+    }
 
     let state = if let Some(file_name) = &core_config().world.RESOURCE_LOCATIONS_FILE {
         Board::new_with_seed_resources(dim, num_agents, seed, file_name, model, has_trading)

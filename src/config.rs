@@ -112,6 +112,9 @@ pub struct RLConfig {
     pub ALPHA: f32,
     pub EPSILON: f32,
     pub MULTI_POLICY: bool,
+    pub SAVE_MODEL: bool,
+    pub LOAD_MODEL: bool,
+    pub MODEL_CHECKPOINT_FILE: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
