@@ -80,7 +80,7 @@ fn main() {
 
     // Open output file and write history
     let mut f = File::create("output.json").unwrap();
-    let step_size = 10;
+    let step_size = 1;
     writeln!(
         f,
         "{}",

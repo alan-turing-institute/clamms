@@ -355,7 +355,7 @@ impl State for Board {
         let traj = &board.agent_histories.get(&0).unwrap().trajectory;
         let recent_len = 100;
         let recent_traj = &traj[(traj.len().max(recent_len) - recent_len)..traj.len()];
-        if core_config().simulation.VERBOSITY > 0 {
+        if core_config().simulation.VERBOSITY > 2 {
             println!(
                 "Mean reward (over last 100 steps) for agent 0: {} at step: {step}",
                 recent_traj.iter().map(|sar| sar.reward.val).sum::<i32>()
