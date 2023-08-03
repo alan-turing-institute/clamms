@@ -1,23 +1,29 @@
+use crate::config::core_config;
 use itertools::Itertools;
 use krabmaga::HashMap;
 use rand::distributions::Distribution;
 use rand::{rngs::StdRng, Rng};
+
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 use strum::IntoEnumIterator;
 use tuple_conv::RepeatedTuple;
 
-use crate::config::core_config;
-
 #[derive(Debug)]
-pub struct QTable<S, L, A> {
+pub struct QTable<S, L, A>
+where
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + IntoEnumIterator + Serialize,
+{
     pub tab: HashMap<(Vec<(S, L)>, A), f32>,
 }
 
 impl<S, L, A> QTable<S, L, A>
 where
-    S: std::cmp::Eq + std::hash::Hash + Clone + Debug,
-    L: std::cmp::Eq + std::hash::Hash + Clone + Debug,
-    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + IntoEnumIterator,
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + IntoEnumIterator,
 {
     pub fn new(state_items: Vec<S>, state_levels: Vec<L>, actions: Vec<A>) -> Self {
         let mut q_tbl = HashMap::new();

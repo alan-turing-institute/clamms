@@ -61,6 +61,11 @@ fn main() {
         serde_json::to_string_pretty(&board.agent_histories).unwrap()
     )
     .unwrap();
+
+    // Save model to file
+    if core_config().rl.SAVE_MODEL {
+        board.model.save()
+    }
 }
 
 // Main used when a visualization feature is applied.

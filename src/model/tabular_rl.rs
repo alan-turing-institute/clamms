@@ -1,9 +1,13 @@
 use super::{agent_state::DiscrRep, history::History, q_table::QTable};
 use crate::config::core_config;
+use itertools::Itertools;
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
+use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
+use std::fs::File;
+use std::io::Write;
 use std::marker::PhantomData;
 use strum::IntoEnumIterator;
 
@@ -11,23 +15,24 @@ use strum::IntoEnumIterator;
 pub struct SARSAModel<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,
-    S: std::cmp::Eq + std::hash::Hash + Clone,
-    L: std::cmp::Eq + std::hash::Hash + Clone,
-    A: std::cmp::Eq + std::hash::Hash + Clone,
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + IntoEnumIterator,
 {
     /// Q tables indexed by agent ID.
     pub q_tbls: HashMap<u32, QTable<S, L, A>>,
     /// Only learn single table if value is false, while one per agent if true.
     multi_policy: bool,
     agent_state_type: PhantomData<T>,
+    pub checkpoint_itr: Option<i32>,
 }
 
 impl<T, S, L, A> SARSAModel<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,
-    S: std::cmp::Eq + std::hash::Hash + Clone + Debug,
-    L: std::cmp::Eq + std::hash::Hash + Clone + Debug,
-    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + IntoEnumIterator,
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + IntoEnumIterator,
 {
     // Vec< Vec<dim=num levels for each resource> dim=num different resources>
     pub fn new(
@@ -48,6 +53,7 @@ where
             q_tbls,
             multi_policy,
             agent_state_type: PhantomData,
+            checkpoint_itr: None,
         }
     }
 
@@ -123,4 +129,62 @@ where
         }
         a
     }
+
+    pub fn save(self) {
+        let mut total_itr = core_config().world.N_STEPS;
+        if core_config().rl.LOAD_MODEL {
+            total_itr += self.checkpoint_itr.expect("set when model loaded");
+        }
+        let mut f = File::create(format!(
+            "multiP_{}__agents_{}__trading_{}__totalItr_{}.json",
+            if core_config().rl.MULTI_POLICY { 1 } else { 0 },
+            core_config().world.N_AGENTS,
+            if core_config().world.HAS_TRADING {
+                1
+            } else {
+                0
+            },
+            total_itr
+        ))
+        .unwrap();
+
+        writeln!(
+            f,
+            "{}",
+            serde_json::to_string_pretty(&hashmap_keys_to_string(self.q_tbls)).unwrap()
+        )
+        .unwrap();
+    }
+}
+
+fn hashmap_keys_to_string<S, L, A>(
+    mut m: HashMap<u32, QTable<S, L, A>>,
+) -> HashMap<String, HashMap<String, f32>>
+where
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
+    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + IntoEnumIterator + Serialize,
+{
+    let mut n = HashMap::new();
+    if core_config().rl.MULTI_POLICY {
+        for (k, v) in m.into_iter() {
+            let mut nn = HashMap::new();
+            for (kk, vv) in v.tab {
+                let mut s = String::new();
+                s += &(kk.0.iter().map(|x| format!("{:?}", x)).join("") + &format!("{:?}", kk.1));
+                nn.insert(s, vv);
+            }
+            n.insert(k.to_string(), nn);
+        }
+    } else {
+        let mut nn = HashMap::new();
+        for (kk, vv) in &mut m.remove(&0).unwrap().tab {
+            let mut s = String::new();
+            s += &(kk.0.iter().map(|x| format!("{:?}", x)).join("") + &format!("{:?}", kk.1));
+            nn.insert(s, *vv);
+        }
+        n.insert(String::from("0"), nn);
+    }
+
+    n
 }
