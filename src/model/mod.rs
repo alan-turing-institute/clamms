@@ -14,6 +14,7 @@ pub mod policy;
 pub mod q_table;
 pub mod reward;
 pub mod routing;
+pub mod serde_utils;
 pub mod tabular_rl;
 pub mod trader;
 
