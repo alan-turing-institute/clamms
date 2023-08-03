@@ -24,6 +24,7 @@ where
 {
     #[serde(with = "serde_utils")]
     pub tab: HashMap<QKey<S, L, A>, f32>,
+    pub action_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -85,7 +86,10 @@ where
             q_tbl.insert(q_key, core_config().rl.INIT_Q_VALUES);
         }
 
-        QTable { tab: q_tbl }
+        QTable {
+            tab: q_tbl,
+            action_count: A::iter().count(),
+        }
     }
 
     pub fn get_tab_mut(&mut self) -> &mut HashMap<QKey<S, L, A>, f32> {
@@ -96,47 +100,35 @@ where
     }
 
     pub fn sample_action(&self, state: &Vec<(S, L)>, rng: &mut StdRng) -> (A, f32) {
-        let mut optimal_a: A = self.pick_rnd(rng);
+        // Pick first action and evaluate q
+        let mut action_itr = A::iter();
+        let mut optimal_a = action_itr.next().unwrap();
         let mut q_optimal = self
             .get_tab()
             .get(&QKey(state.to_owned(), optimal_a.clone()))
             .unwrap();
 
-        for a in A::iter() {
+        // Continue iterating through the next actions, to find optimal action
+        for a in action_itr {
             let q_a = self
                 .get_tab()
-                .get(&QKey(state.to_owned(), optimal_a.clone()))
+                .get(&QKey(state.to_owned(), a.clone()))
                 .unwrap();
-            // println!("{:?}, {:?}", a, q_a);
             if q_a > q_optimal {
                 optimal_a = a;
-                q_optimal = self
-                    .get_tab()
-                    .get(&QKey(state.to_owned(), optimal_a.clone()))
-                    .unwrap();
+                q_optimal = q_a
             }
         }
         let r: f32 = rng.gen();
+        // if exploring, pick randomly
         if r < core_config().rl.EPSILON {
             optimal_a = self.pick_rnd(rng);
         }
         (optimal_a, *q_optimal)
     }
     fn pick_rnd(&self, rng: &mut StdRng) -> A {
-        let r: f32 = rng.gen();
-        let mut a_iter = A::iter();
-        let a: A;
-        if r < 0.3 {
-            a = a_iter.next().expect("at least one action in enum");
-        } else if r < 0.6 {
-            a_iter.next();
-            a = a_iter.next().unwrap();
-        } else {
-            a_iter.next();
-            a_iter.next();
-            a = a_iter.next().unwrap();
-        }
-        a
+        let a_idx: usize = rng.gen_range(0..self.action_count);
+        A::iter().nth(a_idx).unwrap()
     }
 }
 
