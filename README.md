@@ -50,10 +50,10 @@ For example with conda:
 conda create --name tch-rs python=3.9 -y
 conda activate tch-rs
 pip install torch
-echo "export LIBTORCH=$(pip show torch | grep Location | cut -f 2 -d ' ')/torch" >> ~/.zshrc
+LIBTORCH=$(pip show torch | grep Location | cut -f 2 -d ' ')
+echo "export LIBTORCH=${LIBTORCH}/torch" >> ~/.zshrc
 echo "export DYLD_LIBRARY_PATH=${LIBTORCH}/lib:$DYLD_LIBRARY_PATH" >> ~/.zshrc
 . ~/.zshrc
-conda activate tch-rs
 ```
 If successful, the following test should run successfully:
 ```bash
