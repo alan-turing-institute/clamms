@@ -201,40 +201,6 @@ where
     }
 }
 
-// fn format_q_tabls<S, L, A>(
-//     mut m: HashMap<u32, QTable<S, L, A>>,
-//     total_itr: i32,
-// ) -> HashMap<String, HashMap<String, f32>>
-// where
-//     S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
-//     L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize,
-//     A: std::cmp::Eq + std::hash::Hash + Clone + Debug + IntoEnumIterator + Serialize,
-// {
-//     let mut n = HashMap::new();
-//     if core_config().rl.MULTI_POLICY {
-//         for (k, v) in m.into_iter() {
-//             let mut nn = HashMap::new();
-//             for (kk, vv) in v.tab {
-//                 let mut s = String::new();
-//                 s += &(kk.0.iter().map(|x| format!("{:?}", x)).join("&")
-//                     + "^"
-//                     + &format!("{:?}", kk.1));
-//                 nn.insert(s, vv);
-//             }
-//             n.insert(k.to_string(), nn);
-//         }
-//     } else {
-//         let mut nn = HashMap::new();
-//         for (kk, vv) in &mut m.remove(&0).unwrap().tab {
-//             let mut s = String::new();
-//             s += &(kk.0.iter().map(|x| format!("{:?}", x)).join("") + &format!("{:?}", kk.1));
-//             nn.insert(s, *vv);
-//         }
-//         n.insert(String::from("0"), nn);
-//     }
-//     n
-// }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SARSACheckpoint<S, L, A>
 where
