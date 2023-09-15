@@ -1,6 +1,7 @@
 use super::{
     action::Action,
     agent_state::{AgentState, AgentStateItems, DiscrRep, InvLevel},
+    q_table::QKey,
     reward::Reward,
 };
 use serde::{Deserialize, Serialize};
@@ -76,8 +77,8 @@ where
         }
     }
 
-    pub fn representation(&self) -> (Vec<(S, L)>, A) {
-        (self.state.representation(), self.action.clone())
+    pub fn representation(&self) -> QKey<S, L, A> {
+        QKey(self.state.representation(), self.action.clone())
     }
 }
 

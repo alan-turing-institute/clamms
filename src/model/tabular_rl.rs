@@ -1,9 +1,18 @@
-use super::{agent_state::DiscrRep, history::History, q_table::QTable};
+use super::{
+    agent_state::DiscrRep,
+    history::History,
+    q_table::{QKey, QTable},
+    serde_utils,
+};
 use crate::config::core_config;
 use krabmaga::HashMap;
 use rand::rngs::StdRng;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fmt::Debug;
+use std::fs::File;
+use std::io::Write;
 use std::marker::PhantomData;
 use strum::IntoEnumIterator;
 
@@ -11,23 +20,36 @@ use strum::IntoEnumIterator;
 pub struct SARSAModel<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,
-    S: std::cmp::Eq + std::hash::Hash + Clone,
-    L: std::cmp::Eq + std::hash::Hash + Clone,
-    A: std::cmp::Eq + std::hash::Hash + Clone,
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    A: std::cmp::Eq
+        + std::hash::Hash
+        + Clone
+        + Debug
+        + Serialize
+        + IntoEnumIterator
+        + DeserializeOwned,
 {
     /// Q tables indexed by agent ID.
     pub q_tbls: HashMap<u32, QTable<S, L, A>>,
     /// Only learn single table if value is false, while one per agent if true.
     multi_policy: bool,
     agent_state_type: PhantomData<T>,
+    pub checkpoint_itr: Option<i32>,
 }
 
 impl<T, S, L, A> SARSAModel<T, S, L, A>
 where
     T: DiscrRep<S, L> + Clone,
-    S: std::cmp::Eq + std::hash::Hash + Clone + Debug,
-    L: std::cmp::Eq + std::hash::Hash + Clone + Debug,
-    A: std::cmp::Eq + std::hash::Hash + Clone + Debug + IntoEnumIterator,
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    A: std::cmp::Eq
+        + std::hash::Hash
+        + Clone
+        + Debug
+        + Serialize
+        + IntoEnumIterator
+        + DeserializeOwned,
 {
     // Vec< Vec<dim=num levels for each resource> dim=num different resources>
     pub fn new(
@@ -48,6 +70,7 @@ where
             q_tbls,
             multi_policy,
             agent_state_type: PhantomData,
+            checkpoint_itr: None,
         }
     }
 
@@ -98,14 +121,14 @@ where
         }
     }
 
-    pub fn get_table_by_id_mut(&mut self, id: u32) -> &mut HashMap<(Vec<(S, L)>, A), f32> {
+    pub fn get_table_by_id_mut(&mut self, id: u32) -> &mut HashMap<QKey<S, L, A>, f32> {
         self.q_tbls
             .get_mut(&self.policy_id(id))
             .expect("qtable was initialised for all agent id's")
             .get_tab_mut()
     }
 
-    pub fn get_table_by_id(&self, id: u32) -> &HashMap<(Vec<(S, L)>, A), f32> {
+    pub fn get_table_by_id(&self, id: u32) -> &HashMap<QKey<S, L, A>, f32> {
         self.q_tbls
             .get(&self.policy_id(id))
             .expect("qtable was initialised for all agent id's")
@@ -122,5 +145,95 @@ where
             // println!("{}", q_optimal)
         }
         a
+    }
+
+    pub fn save(mut self) {
+        let mut total_itr = core_config().world.N_STEPS;
+        if core_config().rl.LOAD_MODEL {
+            total_itr += self.checkpoint_itr.expect("set when model loaded");
+        }
+        let mut f = File::create(format!(
+            "multiP_{}__agents_{}__trading_{}__totalItr_{}.json",
+            if core_config().rl.MULTI_POLICY { 1 } else { 0 },
+            core_config().world.N_AGENTS,
+            if core_config().world.HAS_TRADING {
+                1
+            } else {
+                0
+            },
+            total_itr
+        ))
+        .unwrap();
+
+        let mut q_tbls;
+        if core_config().rl.MULTI_POLICY {
+            q_tbls = self.q_tbls;
+        } else {
+            q_tbls = HashMap::new();
+            q_tbls.insert(0, self.q_tbls.remove(&0).unwrap());
+        }
+
+        writeln!(
+            f,
+            "{}",
+            serde_json::to_string_pretty(&SARSACheckpoint {
+                total_itr: total_itr,
+                num_agents: core_config().world.N_AGENTS,
+                multi_policy: core_config().rl.MULTI_POLICY,
+                q_tbls,
+            })
+            .unwrap()
+        )
+        .unwrap();
+    }
+
+    pub fn load(checkpoint_file: &str) -> Self {
+        let path = std::path::Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap())
+            .join(checkpoint_file);
+        let checkpoint = SARSACheckpoint::parse(std::fs::read_to_string(path).unwrap());
+
+        SARSAModel {
+            q_tbls: checkpoint.q_tbls,
+            multi_policy: checkpoint.multi_policy,
+            agent_state_type: PhantomData,
+            checkpoint_itr: Some(checkpoint.total_itr),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SARSACheckpoint<S, L, A>
+where
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    A: std::cmp::Eq
+        + std::hash::Hash
+        + Clone
+        + Debug
+        + Serialize
+        + IntoEnumIterator
+        + DeserializeOwned,
+{
+    total_itr: i32,
+    multi_policy: bool,
+    num_agents: u8,
+    #[serde(with = "serde_utils")]
+    q_tbls: HashMap<u32, QTable<S, L, A>>,
+}
+
+impl<S, L, A> SARSACheckpoint<S, L, A>
+where
+    S: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    L: std::cmp::Eq + std::hash::Hash + Clone + Debug + Serialize + DeserializeOwned,
+    A: std::cmp::Eq
+        + std::hash::Hash
+        + Clone
+        + Debug
+        + Serialize
+        + IntoEnumIterator
+        + DeserializeOwned,
+{
+    pub fn parse(serial: String) -> SARSACheckpoint<S, L, A> {
+        serde_json::from_str::<SARSACheckpoint<S, L, A>>(&serial).unwrap()
     }
 }

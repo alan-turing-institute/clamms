@@ -2,7 +2,7 @@
 VERBOSITY = 1
 
 [world]
-N_STEPS = 100000
+N_STEPS = 50000
 RANDOM_SEED = 0
 LAND_PROP = 0.7
 FOOD_ABUNDANCE = 0.1
@@ -51,3 +51,6 @@ ALPHA = 0.01
 EPSILON = 0.01
 MULTI_POLICY = false
 # MULTI_POLICY = true
+SAVE_MODEL = true
+LOAD_MODEL = true
+MODEL_CHECKPOINT_FILE = "multiP_0__agents_30__trading_1__totalItr_50000.json"
