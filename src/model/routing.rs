@@ -114,8 +114,8 @@ pub fn get_resource_locations(resource: &Resource, state: &dyn State) -> Vec<Int
         .to_owned()
 }
 
-pub fn get_trader_locations(state: &mut dyn State) -> Vec<Int2D> {
-    let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
+pub fn get_trader_locations(state: &dyn State) -> Vec<Int2D> {
+    let board = state.as_any().downcast_ref::<Board>().unwrap();
     board
         .get_agents()
         .iter()

@@ -1,4 +1,8 @@
+use std::collections::BTreeMap;
+
 use krabmaga::*;
+use model::agent_state::AgentState;
+use model::history::History;
 mod config;
 mod model;
 use crate::config::core_config;
@@ -20,6 +24,16 @@ use {
 
 #[cfg(any(feature = "visualization", feature = "visualization_wasm"))]
 mod visualization;
+
+type Histories = BTreeMap<u32, History<AgentState, AgentStateItems, InvLevel, Action>>;
+fn convert_history(histories: &Histories, step_size: usize) -> Histories {
+    histories
+        .iter()
+        .fold(Histories::new(), |mut acc, (key, value)| {
+            acc.insert(*key, value.to_skipped_history(step_size));
+            acc
+        })
+}
 
 // Main used when only the simulation should run, without any visualization.
 #[cfg(not(any(feature = "visualization", feature = "visualization_wasm")))]
@@ -66,10 +80,11 @@ fn main() {
 
     // Open output file and write history
     let mut f = File::create("output.json").unwrap();
+    let step_size = 1;
     writeln!(
         f,
         "{}",
-        serde_json::to_string_pretty(&board.agent_histories).unwrap()
+        serde_json::to_string(&convert_history(&board.agent_histories, step_size)).unwrap()
     )
     .unwrap();
 

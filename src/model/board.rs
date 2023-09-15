@@ -1,7 +1,7 @@
 use super::agent_api::AgentAPI;
 use super::environment::Resource;
 use super::history::History;
-use super::trader::Trader;
+use super::trader::{Offer, Trader};
 use crate::config::core_config;
 
 use super::action::Action;
@@ -73,6 +73,22 @@ impl From<ClammsInt2D> for Int2D {
         }
     }
 }
+
+impl From<Int2D> for ClammsInt2D {
+    fn from(value: Int2D) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+
+impl ClammsInt2D {
+    pub fn new(loc: (i32, i32)) -> Self {
+        Self { x: loc.0, y: loc.1 }
+    }
+}
+
 ///
 pub fn read_resource_locations(input: &str) -> BTreeMap<Resource, Vec<Int2D>> {
     serde_json::from_str::<BTreeMap<Resource, Vec<ClammsInt2D>>>(input)
@@ -107,6 +123,17 @@ pub fn example_board(dim: (u16, u16)) -> BTreeMap<Resource, Vec<ClammsInt2D>> {
     map
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct AgentOffer {
+    id: u32,
+    offer: Offer,
+}
+impl AgentOffer {
+    pub fn new(id: u32, offer: &Offer) -> Self {
+        Self { id, offer: *offer }
+    }
+}
+
 // TODO: add a fast lookup by location for resources
 pub struct Board {
     pub step: u64,
@@ -120,7 +147,7 @@ pub struct Board {
     pub model: SARSAModel<AgentState, AgentStateItems, InvLevel, Action>,
     pub loaded_map: bool,
     pub has_trading: bool,
-    pub traded: HashMap<u32, Option<u32>>,
+    pub traded: HashMap<u32, Option<AgentOffer>>,
     pub current_traders: Vec<Trader>,
 }
 
@@ -328,7 +355,7 @@ impl State for Board {
         let traj = &board.agent_histories.get(&0).unwrap().trajectory;
         let recent_len = 100;
         let recent_traj = &traj[(traj.len().max(recent_len) - recent_len)..traj.len()];
-        if core_config().simulation.VERBOSITY > 0 {
+        if core_config().simulation.VERBOSITY > 2 {
             println!(
                 "Mean reward (over last 100 steps) for agent 0: {} at step: {step}",
                 recent_traj.iter().map(|sar| sar.reward.val).sum::<i32>()

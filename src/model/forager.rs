@@ -7,7 +7,7 @@ use super::inventory::Inventory;
 use super::policy::Policy;
 use super::reward::Reward;
 use super::routing::{get_resource_locations, get_trader_locations, Position, Router};
-use super::trader::Trader;
+use super::trader::{Offer, Trader};
 use crate::config::core_config;
 use crate::model::board::Patch;
 use crate::model::environment::EnvItem;
@@ -25,6 +25,7 @@ pub struct Forager {
     pub pos: Int2D,
     food: i32,
     water: i32,
+    pub posted_offer: Offer,
 }
 
 #[derive(Debug, PartialEq)]
@@ -78,16 +79,15 @@ impl Policy for Forager {
         state
             .model
             .sample_action_by_id(self.id, &agent_state.representation(), &mut state.rng)
-        // if agent_state.food < agent_state.water {
-        //     Action::ToFood
-        // } else {
-        //     Action::ToWater
-        // }
     }
 }
 
 impl Agent for Forager {
     fn step(&mut self, state: &mut dyn State) {
+        // resources depleted automatically after taking an action (even if Action::Stationary)
+        self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);
+        self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
+
         // now downcasting to a mutable reference
         let board = state.as_any_mut().downcast_mut::<Board>().unwrap();
 
@@ -118,10 +118,6 @@ impl Agent for Forager {
             self.pos.y = self.pos.y.clamp(1, (board.dim.1 - 1).into());
         }
 
-        // resources depleted automatically after taking an action (even if Action::Stationary)
-        self.consume(&Resource::Food, core_config().agent.FOOD_CONSUME_RATE);
-        self.consume(&Resource::Water, core_config().agent.WATER_CONSUME_RATE);
-
         // if now on a resource, gather the resource
         // Note: get_objects() checks the "read" resource grid, currently resources are fixed once
         // initialised and do not update during the simulation. If resources change during a step,
@@ -144,6 +140,30 @@ impl Agent for Forager {
                 }
             })
         }
+        // check for a setOffer action and update self.posted_offer if necessary
+        // in this way, an offer posted by a setOffer action persists until:
+        // - it is settled
+        // - it is no longer possible, given current inventory
+        // - it is overwritten by a subsequent setOffer action
+        if let Some(updated_offer) = action.parse_offer() {
+            self.posted_offer = updated_offer
+        }
+        // set posted offer to trivial if not possible with current inventory
+        let count_food = self.count(&Resource::Food);
+        let count_water = self.count(&Resource::Water);
+        if !self.posted_offer.is_trivial() {
+            let food_offer = self.posted_offer.food_delta();
+            let water_offer = self.posted_offer.water_delta();
+            if food_offer < 0 {
+                if food_offer.abs() > count_food {
+                    self.posted_offer = Offer::new(0, 0);
+                }
+            } else {
+                if water_offer.abs() > count_water {
+                    self.posted_offer = Offer::new(0, 0);
+                }
+            }
+        }
 
         // Update agent stored in agent_grid, will not be readable until lazy_update after board update
         board
@@ -155,11 +175,16 @@ impl Agent for Forager {
             .agent_histories
             .get_mut(&self.id())
             .expect("HashMap initialised for all agents")
-            .push(SAR::new(
-                agent_state,
-                action,
-                Reward::from_inv_count_linear(self.food, self.water),
-            ));
+            .push(
+                SAR::new(
+                    agent_state,
+                    action,
+                    Reward::from_inv_count_linear(self.food, self.water),
+                ),
+                board.step,
+                self.pos,
+                *board.traded.get(&self.id()).unwrap_or(&None),
+            );
 
         // if self.id == 0 {
         //     println!(
@@ -206,6 +231,7 @@ impl Forager {
             pos,
             food: 0,
             water: 0,
+            posted_offer: Offer::new(0, 0),
         };
         forager.acquire(&Resource::Food, food);
         forager.acquire(&Resource::Water, water);
@@ -247,6 +273,11 @@ impl Forager {
             },
             food: 0,
             water: 0,
+            posted_offer: Offer::new(0, 0),
         }
+    }
+
+    pub fn posted_offer(&self) -> Offer {
+        self.posted_offer
     }
 }
