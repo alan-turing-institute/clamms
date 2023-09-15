@@ -22,6 +22,7 @@ where
         + Serialize
         + DeserializeOwned,
 {
+    // To serialize with a struct as key, custom serialization with a `serde_utils` module can be [used](https://stackoverflow.com/questions/51276896/how-do-i-use-serde-to-serialize-a-hashmap-with-structs-as-keys-to-json)
     #[serde(with = "serde_utils")]
     pub tab: HashMap<QKey<S, L, A>, f32>,
     pub action_count: usize,
