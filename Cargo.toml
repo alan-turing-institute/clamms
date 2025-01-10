@@ -9,7 +9,7 @@ edition = "2021"
 
 
 [dependencies]
-krabmaga = "0.3.*"
+krabmaga = "0.5"
 rand = "0.8.5"
 strum = "0.24"
 strum_macros = "0.24"
